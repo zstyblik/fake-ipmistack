@@ -91,9 +91,100 @@
 
 /* Command assignments - IPMIv2.0 */
 
+/* data_read - read data from socket
+ *
+ * @data_ptr - pointer to memory where to store read data
+ * @data_len - how much to read from socket
+ *
+ * return 0 on success, otherwise (-1)
+ */
+int
+data_read(int fd, void *data_ptr, int data_len)
+{
+	int rc = 0;
+	int data_read = 0;
+	int data_total = 0;
+	int try = 1;
+	int errno_save = 0;
+	if (data_len < 0) {
+		return (-1);
+	}
+	while (data_total < data_len && try < 4) {
+		errno = 0;
+		/* TODO - add poll() */
+		data_read = read(fd, data_ptr, data_len);
+		errno_save = errno;
+		if (data_read > 0) {
+			data_total+= data_read;
+		}
+		if (errno_save != 0) {
+			if (errno_save == EINTR || errno_save == EAGAIN) {
+				try++;
+				sleep(2);
+				continue;
+			} else {
+				errno = errno_save;
+				perror("dummy failed on read(): ");
+				rc = (-1);
+				break;
+			}
+		}
+	}
+	if (try > 3 && data_total != data_len) {
+		rc = (-1);
+	}
+	return rc;
+}
+
+/* data_write - write data to the socket
+ *
+ * @data_ptr - ptr to data to send
+ * @data_len - how long is the data to send
+ *
+ * returns 0 on success, otherwise (-1)
+ */
+int
+data_write(int fd, void *data_ptr, int data_len)
+{
+	int rc = 0;
+	int data_written = 0;
+	int data_total = 0;
+	int try = 1;
+	int errno_save = 0;
+	if (data_len < 0) {
+		return (-1);
+	}
+	while (data_total < data_len && try < 4) {
+		errno = 0;
+		/* TODO - add poll() */
+		data_written = write(fd, data_ptr, data_len);
+		errno_save = errno;
+		if (data_read > 0) {
+			data_total+= data_written;
+		}
+		if (errno_save != 0) {
+			if (errno_save == EINTR || errno_save == EAGAIN) {
+				try++;
+				sleep(2);
+				continue;
+			} else {
+				errno = errno_save;
+				perror("dummy failed on read(): ");
+				rc = (-1);
+				break;
+			}
+		}
+	}
+	if (try > 3 && data_total != data_len) {
+		rc = (-1);
+	}
+	return rc;
+}
+
 int
 serve_client(int client_sockfd)
 {
+	int rc = 0;
 	while (1) {
 		struct dummy_rq req;
 		struct dummy_rs rsp;
@@ -102,11 +193,12 @@ serve_client(int client_sockfd)
 		memset(&rsp, 0, sizeof(rsp));
 		rsp.data_len = 0;
 		rsp.data = NULL;
-		/* TODO - handle short read */
-		/* TODO - add poll() */
-		read(client_sockfd, &req, sizeof(req));
+		if (data_read(client_sockfd, &req, sizeof(req)) != 0) {
+			printf("[FAIL] Read request from client.\n");
+			rc = (-1);
+			goto end;
+		}
 		if (req.msg.data_len > 0) {
-			int count;
 			rq_data_ptr = malloc(req.msg.data_len);
 			if (rq_data_ptr == NULL) {
 				printf("malloc fail\n");
@@ -115,11 +207,14 @@ serve_client(int client_sockfd)
 			memset(rq_data_ptr, 0, req.msg.data_len);
 			printf("[INFO] expecting client to send %i bytes of data.\n",
 					req.msg.data_len);
-			/* TODO - handle short read */
-			/* TODO - add poll() */
-			count = read(client_sockfd, (uint8_t *)rq_data_ptr,
-					req.msg.data_len);
-			printf("[INFO] received %i bytes of data.\n", count);
+
+			if (data_read(client_sockfd,
+						(uint8_t *)rq_data_ptr,
+						req.msg.data_len) != 0) {
+				printf("[FAIL] Read data from client.\n");
+				rc = (-1);
+				goto end;
+			}
 			req.msg.data = rq_data_ptr;
 		}
 
@@ -153,7 +248,6 @@ serve_client(int client_sockfd)
 		}
 
 		printf("---\n");
-
 		printf("Sending:\n");
 		printf("msg.netfn: %x\n", rsp.msg.netfn);
 		printf("msg.cmd: %x\n", rsp.msg.cmd);
@@ -163,16 +257,24 @@ serve_client(int client_sockfd)
 		printf("data_len: %x\n", rsp.data_len);
 		printf("---\n");
 		
-		/* TODO - handle short write */
-		/* TODO - add poll() */
-		write(client_sockfd, (uint8_t *)&rsp, sizeof(rsp));
+		if (data_write(client_sockfd, &rsp, sizeof(rsp)) != 0) {
+			printf("[FAIL] Send response to client.\n");
+			rc = (-1);
+			goto end;
+		}
 		if (rsp.data_len > 0) {
 			printf("[INFO] Sending %i bytes of data.\n",
 					rsp.data_len);
-			/* TODO - handle short write */
-			/* TODO - add poll() */
-			write(client_sockfd, rsp.data, rsp.data_len);
+			if (data_write(client_sockfd,
+						(uint8_t *)rsp.data,
+						rsp.data_len) != 0) {
+				printf("[FAIL] Send data to client.\n");
+				rc = (-1);
+				goto end;
+			}
 		}
+		
+		end:
 		if (rq_data_ptr != NULL) {
 			free(rq_data_ptr);
 			req.msg.data = NULL;
@@ -181,8 +283,11 @@ serve_client(int client_sockfd)
 			free(rsp.data);
 			rsp.data = NULL;
 		}
+		if (rc == (-1)) {
+			break;
+		}
 	}
-	return 0;
+	return rc;
 }
 
 int
@@ -192,7 +297,7 @@ main()
 	struct sockaddr_un client_address;
 	int server_sockfd, client_sockfd;
 	int server_len;
-	uint8_t client_len;
+	socklen_t client_len;
 	unlink(DUMMY_SOCKET_PATH);
 	server_sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
 	server_address.sun_family = AF_UNIX;
