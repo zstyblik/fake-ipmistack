@@ -30,6 +30,7 @@
 # define IPMI_SRV
 
 #include <arpa/inet.h>
+#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -104,6 +105,9 @@ struct dummy_rs {
 # define CHASSIS_SET_FP_BUTTONS 0x0A
 # define CHASSIS_SET_PWR_CYCLE_INT 0x0B
 # define CHASSIS_GET_POH_COUNTER 0x0F
+
+# define SEL_GET_TIME 0x48
+# define SEL_SET_TIME 0x49
 
 # define TRANSPORT_SET_LAN_CFG 0x01
 # define TRANSPORT_GET_LAN_CFG 0x02

@@ -8,5 +8,6 @@ endforeach(program)
 #building just a library. 
 add_library(netfn_app netfn_app.c)
 add_library(netfn_chassis netfn_chassis.c)
+add_library(netfn_storage netfn_storage.c)
 add_library(netfn_transport netfn_transport.c)
 

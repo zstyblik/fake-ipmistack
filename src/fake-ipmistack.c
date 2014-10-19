@@ -29,6 +29,7 @@
 #include "fake-ipmistack/fake-ipmistack.h"
 #include "fake-ipmistack/netfn_app.h"
 #include "fake-ipmistack/netfn_chassis.h"
+#include "fake-ipmistack/netfn_storage.h"
 #include "fake-ipmistack/netfn_transport.h"
 
 /* BMC rq [bytes]
@@ -236,6 +237,8 @@ serve_client(int client_sockfd)
 			netfn_app_main(&req, &rsp);
 		} else if (req.msg.netfn == NETFN_CHASSIS) {
 			netfn_chassis_main(&req, &rsp);
+		} else if (req.msg.netfn == NETFN_STORAGE) {
+			netfn_storage_main(&req, &rsp);
 		} else if (req.msg.netfn == NETFN_TRANSPORT) {
 			netfn_transport_main(&req, &rsp);
 		} else {
