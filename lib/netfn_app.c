@@ -147,6 +147,7 @@ app_get_channel_info(struct dummy_rq *req, struct dummy_rs *rsp)
 		/* TODO - de-hard-code this */
 		data[0] = 0xFF;
 	}
+	printf("[DEBUG] Channel is: %x\n", data[0]);
 	if (get_channel_by_number(data[0], &channel_t) != 0) {
 		printf("[ERROR] get channel by number\n");
 		rsp->ccode = 0xCC;
