@@ -1,39 +1,33 @@
-===== fake-ipmistack =====
+# fake-ipmistack
 
-FIXME
+fake-ipmistack is a simple and naive implementation for IPMItool functionality
+testing.
 
-
-==== Installation ====
+## Installation
 
 There is no installation per se. There is no point in having one.
 
-<code>
-git git://git.zeratul.org/projects/fake-ipmistack
+```sh
+git clone <repo_url> fake-ipmistack
 cd fake-ipmistack
 mkdir build
 cd build
 cmake ../ && make VERBOSE=1
-</code>
-
-In case your compilation ended up with success, you should be able to start
-fake-ipmistack as shown below:
-
-<code>
+# if compiled successfully
 ./build/src/fake-ipmistack
 [INFO] server is awaiting new connection
-</code>
+```
 
+## Directory structure
 
-==== Directory structure ====
-
-.
+```
 ├── include
 │   └── fake-ipmistack - header files
 ├── lib - modules/functional parts and helpers
 └── src - top-level/apps(?)
+```
 
-
-==== Interface ====
+## Interface
 
 In case you'd like to use fake-ipmistack outside of IPMItool, you're probably
 wondering about its interface. It's using UNIX sockets to communicate with
@@ -42,8 +36,6 @@ check-out IPMItool's "dummy" interface to get the idea how to implemnt
 fake-ipmistack compatible interface in your project.
 
 Structures used to shift data back and forth are in
-''./include/fake-ipmistack/fake-ipmistack.h'':
-  * ''dummy_rq'' represents client's request
-  * ''dummy_rs'' represents reponse sent back to client
-
-
+``./include/fake-ipmistack/fake-ipmistack.h``:
+ - ``dummy_rq`` represents client's request
+ - ``dummy_rs`` represents reponse sent back to client
