@@ -14,7 +14,7 @@ mkdir build
 cd build
 cmake ../ && make VERBOSE=1
 # if compiled successfully
-./build/src/fake-ipmistack
+./src/fake-ipmistack
 [INFO] server is awaiting new connection
 ```
 
