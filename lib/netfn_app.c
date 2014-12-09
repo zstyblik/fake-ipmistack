@@ -280,13 +280,6 @@ mc_selftest(struct dummy_rq *req, struct dummy_rs *rsp)
 	return 0;
 }
 
-int
-user_set_access(struct dummy_rq *req, struct dummy_rs *rsp)
-{
-	rsp->ccode = 0xFF;
-	return (-1);
-}
-
 /* (22.27) Get User Access Command */
 int
 user_get_access(struct dummy_rq *req, struct dummy_rs *rsp)
@@ -326,14 +319,21 @@ user_get_access(struct dummy_rq *req, struct dummy_rs *rsp)
 }
 
 int
-user_set_name(struct dummy_rq *req, struct dummy_rs *rsp)
+user_get_name(struct dummy_rq *req, struct dummy_rs *rsp)
 {
 	rsp->ccode = 0xFF;
 	return (-1);
 }
 
 int
-user_get_name(struct dummy_rq *req, struct dummy_rs *rsp)
+user_set_access(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	rsp->ccode = 0xFF;
+	return (-1);
+}
+
+int
+user_set_name(struct dummy_rq *req, struct dummy_rs *rsp)
 {
 	rsp->ccode = 0xFF;
 	return (-1);
@@ -376,17 +376,17 @@ netfn_app_main(struct dummy_rq *req, struct dummy_rs *rsp)
 	case BMC_GET_DEVICE_GUID:
 		rc = mc_get_device_guid(req, rsp);
 		break;
-	case USER_SET_ACCESS:
-		rc = user_set_access(req, rsp);
-		break;
 	case USER_GET_ACCESS:
 		rc = user_get_access(req, rsp);
 		break;
-	case USER_SET_NAME:
-		rc = user_set_name(req, rsp);
-		break;
 	case USER_GET_NAME:
 		rc = user_get_name(req, rsp);
+		break;
+	case USER_SET_ACCESS:
+		rc = user_set_access(req, rsp);
+		break;
+	case USER_SET_NAME:
+		rc = user_set_name(req, rsp);
 		break;
 	case USER_SET_PASSWORD:
 		rc = user_set_password(req, rsp);
