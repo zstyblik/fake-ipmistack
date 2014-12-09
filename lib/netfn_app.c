@@ -281,6 +281,72 @@ mc_selftest(struct dummy_rq *req, struct dummy_rs *rsp)
 }
 
 int
+user_set_access(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	rsp->ccode = 0xFF;
+	return (-1);
+}
+
+/* (22.27) Get User Access Command */
+int
+user_get_access(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	uint8_t *data;
+	uint8_t data_len = 4 * sizeof(uint8_t);
+	if (req->msg.data_len != 2) {
+		rsp->ccode = 0xC7;
+		return (-1);
+	}
+	/* [0][7:4] - reserved, [3:0] - channel */
+	req->msg.data[0] &= 0x0F;
+	/* [1][7:6] - reserved, [5:0] - uid */
+	req->msg.data[1] &= 0x3F;
+	printf("Channel: %" PRIu8 "\n", req->msg.data[0]);
+	printf("UID: %" PRIu8 "\n", req->msg.data[1]);
+	data = malloc(data_len);
+	if (data == NULL) {
+		printf("malloc fail\n");
+		rsp->ccode = 0xFF;
+		return (-1);
+	}
+	/* Table 22, Get User Access, p. 310(336)
+	 * [1] - [5:0] max UIDs
+	 * [2] - [7:6] user ena(01)/dis(10), [5:0] count enabled
+	 * [3] - [5:0] count fixed names
+	 * [4] - bitfield
+	 */
+	data[0] = 0x3F & 0x03;
+	data[1] = 0x40 | 0x02;
+	data[2] = 0x3F & 0x01;
+	data[3] = 0x64;
+	rsp->data_len = data_len;
+	rsp->data = data;
+	rsp->ccode = 0x00;
+	return (-1);
+}
+
+int
+user_set_name(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	rsp->ccode = 0xFF;
+	return (-1);
+}
+
+int
+user_get_name(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	rsp->ccode = 0xFF;
+	return (-1);
+}
+
+int
+user_set_password(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	rsp->ccode = 0xFF;
+	return (-1);
+}
+
+int
 netfn_app_main(struct dummy_rq *req, struct dummy_rs *rsp)
 {
 	int rc = 0;
@@ -309,6 +375,21 @@ netfn_app_main(struct dummy_rq *req, struct dummy_rs *rsp)
 		break;
 	case BMC_GET_DEVICE_GUID:
 		rc = mc_get_device_guid(req, rsp);
+		break;
+	case USER_SET_ACCESS:
+		rc = user_set_access(req, rsp);
+		break;
+	case USER_GET_ACCESS:
+		rc = user_get_access(req, rsp);
+		break;
+	case USER_SET_NAME:
+		rc = user_set_name(req, rsp);
+		break;
+	case USER_GET_NAME:
+		rc = user_get_name(req, rsp);
+		break;
+	case USER_SET_PASSWORD:
+		rc = user_set_password(req, rsp);
 		break;
 	default:
 		rsp->ccode = 0xC1;

@@ -31,6 +31,7 @@
 
 #include <arpa/inet.h>
 #include <errno.h>
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -113,5 +114,11 @@ struct dummy_rs {
 # define TRANSPORT_GET_LAN_CFG 0x02
 # define TRANSPORT_SUSPEND_BMC_ARP 0x03
 # define TRANSPORT_GET_IP_STATS 0x04
+
+# define USER_SET_ACCESS 0x43
+# define USER_GET_ACCESS 0x44
+# define USER_SET_NAME 0x45
+# define USER_GET_NAME 0x46
+# define USER_SET_PASSWORD 0x47
 
 #endif
