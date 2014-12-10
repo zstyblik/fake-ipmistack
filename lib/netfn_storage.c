@@ -40,7 +40,7 @@ sel_get_time(struct dummy_rq *req, struct dummy_rs *rsp)
 	uint8_t data_len = 4 * sizeof(uint8_t);
 	data = malloc(data_len);
 	if (data == NULL) {
-		rsp->ccode = 0xFF;
+		rsp->ccode = CC_UNSPEC;
 		printf("malloc fail\n");
 		return (-1);
 	}
@@ -50,7 +50,7 @@ sel_get_time(struct dummy_rq *req, struct dummy_rs *rsp)
 	data[3] = bmc_time[3];
 	rsp->data = data;
 	rsp->data_len = data_len;
-	rsp->ccode = 0;
+	rsp->ccode = CC_OK;
 
 	strftime(tbuf, sizeof(tbuf), "%m/%d/%Y %H:%M:%S",
 			gmtime((time_t *)data));
@@ -64,7 +64,7 @@ sel_set_time(struct dummy_rq *req, struct dummy_rs *rsp)
 {
 	static char tbuf[40];
 	if (req->msg.data_len != 4) {
-		rsp->ccode = 0xC7;
+		rsp->ccode = CC_DATA_LEN;
 		return (-1);
 	}
 	printf("[0]: '%i'\n", req->msg.data[0]);
@@ -89,7 +89,7 @@ netfn_storage_main(struct dummy_rq *req, struct dummy_rs *rsp)
 	rsp->msg.netfn = req->msg.netfn + 1;
 	rsp->msg.cmd = req->msg.cmd;
 	rsp->msg.lun = req->msg.lun;
-	rsp->ccode = 0;
+	rsp->ccode = CC_OK;
 	rsp->data_len = 0;
 	rsp->data = NULL;
 	switch (req->msg.cmd) {
@@ -100,7 +100,7 @@ netfn_storage_main(struct dummy_rq *req, struct dummy_rs *rsp)
 		rc = sel_set_time(req, rsp);
 		break;
 	default:
-		rsp->ccode = 0xC1;
+		rsp->ccode = CC_CMD_INV;
 		rc = (-1);
 	}
 	return rc;

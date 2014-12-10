@@ -46,19 +46,19 @@ transport_get_ip_stats(struct dummy_rq *req, struct dummy_rs *rsp)
 	uint8_t *data;
 	uint8_t data_len = 18 * sizeof(uint8_t);
 	if (req->msg.data_len != 2) {
-		rsp->ccode = 0xC7;
+		rsp->ccode = CC_DATA_LEN;
 		return (-1);
 	}
 	/* Channel actually doesn't matter to us. */
 	req->msg.data[0]|= 0xF0;
 	if (is_valid_channel(req->msg.data[0])) {
-		rsp->ccode = 0xC9;
+		rsp->ccode = CC_PARAM_OOR;
 		return (-1);
 	}
 	data = malloc(data_len);
 	if (data == NULL) {
 		printf("malloc fail\n");
-		rsp->ccode = 0xFF;
+		rsp->ccode = CC_UNSPEC;
 		return (-1);
 	}
 	if ((req->msg.data[1] | 0xFE) == 0xFF) {
@@ -103,7 +103,7 @@ netfn_transport_main(struct dummy_rq *req, struct dummy_rs *rsp)
 	rsp->msg.netfn = req->msg.netfn + 1;
 	rsp->msg.cmd = req->msg.cmd;
 	rsp->msg.lun = req->msg.lun;
-	rsp->ccode = 0;
+	rsp->ccode = CC_OK;
 	rsp->data_len = 0;
 	rsp->data = NULL;
 	switch (req->msg.cmd) {
@@ -111,19 +111,19 @@ netfn_transport_main(struct dummy_rq *req, struct dummy_rs *rsp)
 		rc = transport_get_ip_stats(req, rsp);
 		break;
 	case TRANSPORT_GET_LAN_CFG:
-		rsp->ccode = 0xC1;
+		rsp->ccode = CC_CMD_INV;
 		rc = (-1);
 		break;
 	case TRANSPORT_SET_LAN_CFG:
-		rsp->ccode = 0xC1;
+		rsp->ccode = CC_CMD_INV;
 		rc = (-1);
 		break;
 	case TRANSPORT_SUSPEND_BMC_ARP:
-		rsp->ccode = 0xC1;
+		rsp->ccode = CC_CMD_INV;
 		rc = (-1);
 		break;
 	default:
-		rsp->ccode = 0xC1;
+		rsp->ccode = CC_CMD_INV;
 		rc = (-1);
 		break;
 	}

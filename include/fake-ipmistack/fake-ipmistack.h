@@ -121,4 +121,21 @@ struct dummy_rs {
 # define USER_GET_NAME 0x46
 # define USER_SET_PASSWORD 0x47
 
+/* Completion Codes */
+# define CC_OK 0x00
+# define CC_BUSY 0xC0
+# define CC_CMD_INV 0xC1
+# define CC_CMD_LUN_INV 0xC2
+# define CC_TIMEOUT 0xC3
+# define CC_NO_SPACE 0xC4
+# define CC_DATA_TRUNC 0xC6
+# define CC_DATA_LEN 0xC7
+# define CC_DATA_FIELD_LEN 0xC8
+# define CC_PARAM_OOR 0xC9
+# define CC_SDR_NA 0xCB
+# define CC_REQ_INV 0xCC
+# define CC_EXEC_NA_STATE 0xD5
+# define CC_EXEC_NA_PARAM 0xD6
+# define CC_UNSPEC 0xFF
+
 #endif

@@ -51,7 +51,7 @@ int
 chassis_control(struct dummy_rq *req, struct dummy_rs *rsp)
 {
 	if (req->msg.data_len != 1) {
-		rsp->ccode = 0xC7;
+		rsp->ccode = CC_DATA_LEN;
 		return (-1);
 	}
 	req->msg.data[0]|= 0xF0;
@@ -68,7 +68,7 @@ chassis_control(struct dummy_rq *req, struct dummy_rs *rsp)
 	case 0xF2:
 		printf("[INFO] Host Power Cycle\n");
 		if (g_host_power_state == 0) {
-			rsp->ccode = 0xD5;
+			rsp->ccode = CC_EXEC_NA_STATE;
 		}
 		g_sys_restart_cause = 0xF1;
 		sleep(g_pwr_cycle_int);
@@ -89,7 +89,7 @@ chassis_control(struct dummy_rq *req, struct dummy_rs *rsp)
 		g_sys_restart_cause = 0xF1;
 		break;
 	default:
-		rsp->ccode = 0xCC;
+		rsp->ccode = CC_REQ_INV;
 		break;
 	}
 	return 0;
@@ -104,7 +104,7 @@ chassis_get_capa(struct dummy_rq *req, struct dummy_rs *rsp)
 	data = malloc(data_len);
 	if (data == NULL) {
 		printf("malloc fail\n");
-		rsp->ccode = 0xFF;
+		rsp->ccode = CC_UNSPEC;
 		return (-1);
 	}
 	data[0] = 0xFF;
@@ -127,7 +127,7 @@ chassis_get_poh_counter(struct dummy_rq *req, struct dummy_rs *rsp)
 	data = malloc(data_len);
 	if (data == NULL) {
 		printf("malloc fail\n");
-		rsp->ccode = 0xFF;
+		rsp->ccode = CC_UNSPEC;
 		return (-1);
 	}
 	data[0] = g_poh_mins_pcount;
@@ -150,7 +150,7 @@ chassis_get_status(struct dummy_rq *req, struct dummy_rs *rsp)
 	data = malloc(data_len);
 	if (data == NULL) {
 		printf("malloc fail\n");
-		rsp->ccode = 0xFF;
+		rsp->ccode = CC_UNSPEC;
 		return (-1);
 	}
 	data[0] = 0;
@@ -167,7 +167,7 @@ chassis_get_status(struct dummy_rq *req, struct dummy_rs *rsp)
 int
 chassis_get_sysboot_opts(struct dummy_rq *req, struct dummy_rs *rsp)
 {
-	rsp->ccode = 0xD6;
+	rsp->ccode = CC_EXEC_NA_PARAM;
 	return 0;
 }
 
@@ -180,7 +180,7 @@ chassis_get_sysres_cause(struct dummy_rq *req, struct dummy_rs *rsp)
 	data = malloc(data_len);
 	if (data == NULL) {
 		printf("malloc fail\n");
-		rsp->ccode = 0xFF;
+		rsp->ccode = CC_UNSPEC;
 		return (-1);
 	}
 	data[0] = g_sys_restart_cause;
@@ -200,7 +200,7 @@ chassis_identify(struct dummy_rq *req, struct dummy_rs *rsp)
 	int interval = 15;
 	int force = 0;
 	if (req->msg.data_len > 2) {
-		rsp->ccode = 0xC8;
+		rsp->ccode = CC_DATA_FIELD_LEN;
 		return (-1);
 	}
 	if (req->msg.data_len >= 1) {
@@ -232,7 +232,7 @@ chassis_identify(struct dummy_rq *req, struct dummy_rs *rsp)
 int
 chassis_reset(struct dummy_rq *req, struct dummy_rs *rsp)
 {
-	rsp->ccode = 0xD6;
+	rsp->ccode = CC_EXEC_NA_PARAM;
 	return 0;
 }
 
@@ -241,7 +241,7 @@ int
 chassis_set_capa(struct dummy_rq *req, struct dummy_rs *rsp)
 {
 	/* TODO */
-	rsp->ccode = 0xD6;
+	rsp->ccode = CC_EXEC_NA_PARAM;
 	return 0;
 }
 
@@ -251,7 +251,7 @@ chassis_set_fp_buttons(struct dummy_rq *req, struct dummy_rs *rsp)
 {
 	uint8_t tmp_fpb;
 	if (req->msg.data_len != 1) {
-		rsp->ccode = 0xC7;
+		rsp->ccode = CC_DATA_LEN;
 		return (-1);
 	}
 	req->msg.data[0]|= 0xF0;
@@ -295,7 +295,7 @@ int
 chassis_set_pwr_cycle_int(struct dummy_rq *req, struct dummy_rs *rsp)
 {
 	if (req->msg.data_len != 1) {
-		rsp->ccode = 0xC7;
+		rsp->ccode = CC_DATA_LEN;
 		return (-1);
 	}
 	g_pwr_cycle_int = rsp->data[0];
@@ -309,13 +309,13 @@ chassis_set_pwr_restore_pol(struct dummy_rq *req, struct dummy_rs *rsp)
 	uint8_t *data;
 	uint8_t data_len = 1 * sizeof(uint8_t);
 	if (req->msg.data_len != 1) {
-		rsp->ccode = 0xC7;
+		rsp->ccode = CC_DATA_LEN;
 		return (-1);
 	}
 	data = malloc(data_len);
 	if (data == NULL) {
 		printf("malloc fail\n");
-		rsp->ccode = 0xFF;
+		rsp->ccode = CC_UNSPEC;
 		return (-1);
 	}
 	req->msg.data[0]|= 0xF8;
@@ -336,7 +336,7 @@ chassis_set_pwr_restore_pol(struct dummy_rq *req, struct dummy_rs *rsp)
 		g_pwr_restore_pol = 0x00;
 		break;
 	default:
-		rsp->ccode = 0xCC;
+		rsp->ccode = CC_REQ_INV;
 		break;
 	}
 
@@ -356,7 +356,7 @@ int
 chassis_set_sysboot_opts(struct dummy_rq *req, struct dummy_rs *rsp)
 {
 	/* TODO */
-	rsp->ccode = 0xD6;
+	rsp->ccode = CC_EXEC_NA_PARAM;
 	return 0;
 }
 
@@ -367,7 +367,7 @@ netfn_chassis_main(struct dummy_rq *req, struct dummy_rs *rsp)
 	rsp->msg.netfn = req->msg.netfn + 1;
 	rsp->msg.cmd = req->msg.cmd;
 	rsp->msg.lun = req->msg.lun;
-	rsp->ccode = 0;
+	rsp->ccode = CC_OK;
 	rsp->data_len = 0;
 	rsp->data = NULL;
 	switch (req->msg.cmd) {
@@ -411,7 +411,7 @@ netfn_chassis_main(struct dummy_rq *req, struct dummy_rs *rsp)
 		rc = chassis_set_sysboot_opts(req, rsp);
 		break;
 	default:
-		rsp->ccode = 0xC1;
+		rsp->ccode = CC_CMD_INV;
 		rc = (-1);
 	}
 	return rc;

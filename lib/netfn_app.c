@@ -90,17 +90,17 @@ app_get_channel_access(struct dummy_rq *req, struct dummy_rs *rsp)
 	uint8_t *data;
 	uint8_t data_len = 2 * sizeof(uint8_t);
 	if (req->msg.data_len != 2) {
-		rsp->ccode = 0xC7;
+		rsp->ccode = CC_DATA_LEN;
 		return (-1);
 	}
 	req->msg.data[1]|= 0x3F;
 	if (req->msg.data[1] == 0x3F || req->msg.data[1] == 0xFF) {
-		rsp->ccode = 0xCC;
+		rsp->ccode = CC_REQ_INV;
 		return (-1);
 	}
 	data = malloc(data_len);
 	if (data == NULL) {
-		rsp->ccode = 0xFF;
+		rsp->ccode = CC_UNSPEC;
 		printf("malloc fail\n");
 		return (-1);
 	}
@@ -111,7 +111,7 @@ app_get_channel_access(struct dummy_rq *req, struct dummy_rs *rsp)
 		data[0] = 0xFF;
 	}
 	if (get_channel_by_number(data[0], &channel_t) != 0) {
-		rsp->ccode = 0xCC;
+		rsp->ccode = CC_REQ_INV;
 		free(data);
 		data = NULL;
 		return (-1);
@@ -133,12 +133,12 @@ app_get_channel_info(struct dummy_rq *req, struct dummy_rs *rsp)
 	uint8_t *data;
 	uint8_t data_len = 9 * sizeof(uint8_t);
 	if (req->msg.data_len != 1) {
-		rsp->ccode = 0xC7;
+		rsp->ccode = CC_DATA_LEN;
 		return (-1);
 	}
 	data = malloc(data_len);
 	if (data == NULL) {
-		rsp->ccode = 0xFF;
+		rsp->ccode = CC_UNSPEC;
 		printf("malloc fail\n");
 		return (-1);
 	}
@@ -151,7 +151,7 @@ app_get_channel_info(struct dummy_rq *req, struct dummy_rs *rsp)
 	printf("[DEBUG] Channel is: %x\n", data[0]);
 	if (get_channel_by_number(data[0], &channel_t) != 0) {
 		printf("[ERROR] get channel by number\n");
-		rsp->ccode = 0xCC;
+		rsp->ccode = CC_REQ_INV;
 		free(data);
 		data = NULL;
 		return (-1);
@@ -184,7 +184,7 @@ mc_get_device_id(struct dummy_rq *req, struct dummy_rs *rsp)
 	uint8_t *data;
 	data = malloc(data_len);
 	if (data == NULL) {
-		rsp->ccode = 0xFF;
+		rsp->ccode = CC_UNSPEC;
 		printf("malloc fail\n");
 		return (-1);
 	}
@@ -235,7 +235,7 @@ mc_get_device_guid(struct dummy_rq *req, struct dummy_rs *rsp)
 	data = malloc(data_len);
 	if (data == NULL) {
 		printf("malloc fail\n");
-		rsp->ccode = 0xFF;
+		rsp->ccode = CC_UNSPEC;
 		return (-1);
 	}
 	memset(&data, 0, data_len);
@@ -256,7 +256,7 @@ mc_reset(struct dummy_rq *req, struct dummy_rs *rsp)
 	} else {
 		printf("[ERROR] Invalid command '%u'.\n",
 				req->msg.cmd);
-		rsp->ccode = 0xC1;
+		rsp->ccode = CC_CMD_INV;
 		return (-1);
 	}
 	return 0;
@@ -271,7 +271,7 @@ mc_selftest(struct dummy_rq *req, struct dummy_rs *rsp)
 	data = malloc(data_len);
 	if (data == NULL) {
 		printf("malloc fail\n");
-		rsp->ccode = 0xFF;
+		rsp->ccode = CC_UNSPEC;
 		return (-1);
 	}
 	data[0] = 0x57;
@@ -288,7 +288,7 @@ user_get_access(struct dummy_rq *req, struct dummy_rs *rsp)
 	uint8_t *data;
 	uint8_t data_len = 4 * sizeof(uint8_t);
 	if (req->msg.data_len != 2) {
-		rsp->ccode = 0xC7;
+		rsp->ccode = CC_DATA_LEN;
 		return (-1);
 	}
 	/* [0][7:4] - reserved, [3:0] - channel */
@@ -298,13 +298,13 @@ user_get_access(struct dummy_rq *req, struct dummy_rs *rsp)
 	printf("Channel: %" PRIu8 "\n", req->msg.data[0]);
 	printf("UID: %" PRIu8 "\n", req->msg.data[1]);
 	if (is_valid_channel(req->msg.data[0])) {
-		rsp->ccode = 0xC9;
+		rsp->ccode = CC_PARAM_OOR;
 		return (-1);
 	}
 	data = malloc(data_len);
 	if (data == NULL) {
 		printf("malloc fail\n");
-		rsp->ccode = 0xFF;
+		rsp->ccode = CC_UNSPEC;
 		return (-1);
 	}
 	/* Table 22, Get User Access, p. 310(336)
@@ -319,35 +319,35 @@ user_get_access(struct dummy_rq *req, struct dummy_rs *rsp)
 	data[3] = 0x64;
 	rsp->data_len = data_len;
 	rsp->data = data;
-	rsp->ccode = 0x00;
+	rsp->ccode = CC_OK;
 	return (-1);
 }
 
 int
 user_get_name(struct dummy_rq *req, struct dummy_rs *rsp)
 {
-	rsp->ccode = 0xFF;
+	rsp->ccode = CC_CMD_INV;
 	return (-1);
 }
 
 int
 user_set_access(struct dummy_rq *req, struct dummy_rs *rsp)
 {
-	rsp->ccode = 0xFF;
+	rsp->ccode = CC_CMD_INV;
 	return (-1);
 }
 
 int
 user_set_name(struct dummy_rq *req, struct dummy_rs *rsp)
 {
-	rsp->ccode = 0xFF;
+	rsp->ccode = CC_CMD_INV;
 	return (-1);
 }
 
 int
 user_set_password(struct dummy_rq *req, struct dummy_rs *rsp)
 {
-	rsp->ccode = 0xFF;
+	rsp->ccode = CC_CMD_INV;
 	return (-1);
 }
 
@@ -358,7 +358,7 @@ netfn_app_main(struct dummy_rq *req, struct dummy_rs *rsp)
 	rsp->msg.netfn = req->msg.netfn + 1;
 	rsp->msg.cmd = req->msg.cmd;
 	rsp->msg.lun = req->msg.lun;
-	rsp->ccode = 0;
+	rsp->ccode = CC_OK;
 	rsp->data_len = 0;
 	rsp->data = NULL;
 	switch (req->msg.cmd) {
@@ -397,7 +397,7 @@ netfn_app_main(struct dummy_rq *req, struct dummy_rs *rsp)
 		rc = user_set_password(req, rsp);
 		break;
 	default:
-		rsp->ccode = 0xC1;
+		rsp->ccode = CC_CMD_INV;
 		rc = (-1);
 	}
 	return rc;
