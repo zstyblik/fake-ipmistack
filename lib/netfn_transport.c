@@ -27,6 +27,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include "fake-ipmistack/fake-ipmistack.h"
+#include "fake-ipmistack/helper.h"
 
 static uint16_t g_ip_addr_err_rx = 300;
 static uint16_t g_ip_frag_rx = 203;
@@ -50,7 +51,10 @@ transport_get_ip_stats(struct dummy_rq *req, struct dummy_rs *rsp)
 	}
 	/* Channel actually doesn't matter to us. */
 	req->msg.data[0]|= 0xF0;
-	/* TODO - Check whether Channel is within range */
+	if (is_valid_channel(req->msg.data[0])) {
+		rsp->ccode = 0xC9;
+		return (-1);
+	}
 	data = malloc(data_len);
 	if (data == NULL) {
 		printf("malloc fail\n");

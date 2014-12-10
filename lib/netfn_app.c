@@ -27,6 +27,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include "fake-ipmistack/fake-ipmistack.h"
+#include "fake-ipmistack/helper.h"
 
 struct ipmi_channel {
 	int number;
@@ -296,6 +297,10 @@ user_get_access(struct dummy_rq *req, struct dummy_rs *rsp)
 	req->msg.data[1] &= 0x3F;
 	printf("Channel: %" PRIu8 "\n", req->msg.data[0]);
 	printf("UID: %" PRIu8 "\n", req->msg.data[1]);
+	if (is_valid_channel(req->msg.data[0])) {
+		rsp->ccode = 0xC9;
+		return (-1);
+	}
 	data = malloc(data_len);
 	if (data == NULL) {
 		printf("malloc fail\n");
