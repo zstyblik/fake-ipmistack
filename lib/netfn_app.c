@@ -415,7 +415,8 @@ user_set_password(struct dummy_rq *req, struct dummy_rs *rsp)
 		break;
 	default:
 		rsp->ccode = CC_DATA_FIELD_INV;
-		return rc;
+		rc = (-1);
+		break;
 	}
 	return rc;
 }
