@@ -37,7 +37,7 @@ struct ipmi_channel {
 	uint8_t capabilities;
 	uint8_t priv_level;
 	char desc[24];
-} ipmi_channels[] __attribute__((unused)) = {
+} ipmi_channels[] = {
 	{ 0xF0, 0x02, 0x01, 0x00, 0x00, 0x00, "IPMBv1.0, no-session" },
 	{ 0xF1, 0x02, 0x04, 0x80, 0xC2, 0xF5, "802.3 LAN, m-session" },
 	{ 0xF2, 0x02, 0x05, 0x40, 0x00, 0x00, "Serial/Modem, s-session" },
@@ -66,7 +66,7 @@ struct ipmi_user {
 	uint8_t password[21];
 	uint8_t password_size; /* password stored as 16b = 0; 20b = 1 */
 	uint8_t channel_access;
-} ipmi_users[] __attribute__((unused)) = {
+} ipmi_users[] = {
 	{ 0x01, "admin", "", 1, 0x34 },
 	{ -1 }
 };
