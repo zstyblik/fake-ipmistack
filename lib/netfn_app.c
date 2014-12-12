@@ -95,7 +95,7 @@ app_get_channel_access(struct dummy_rq *req, struct dummy_rs *rsp)
 	}
 	req->msg.data[1]|= 0x3F;
 	if (req->msg.data[1] == 0x3F || req->msg.data[1] == 0xFF) {
-		rsp->ccode = CC_REQ_INV;
+		rsp->ccode = CC_DATA_FIELD_INV;
 		return (-1);
 	}
 	data = malloc(data_len);
@@ -111,7 +111,7 @@ app_get_channel_access(struct dummy_rq *req, struct dummy_rs *rsp)
 		data[0] = 0xFF;
 	}
 	if (get_channel_by_number(data[0], &channel_t) != 0) {
-		rsp->ccode = CC_REQ_INV;
+		rsp->ccode = CC_DATA_FIELD_INV;
 		free(data);
 		data = NULL;
 		return (-1);
@@ -151,7 +151,7 @@ app_get_channel_info(struct dummy_rq *req, struct dummy_rs *rsp)
 	printf("[DEBUG] Channel is: %x\n", data[0]);
 	if (get_channel_by_number(data[0], &channel_t) != 0) {
 		printf("[ERROR] get channel by number\n");
-		rsp->ccode = CC_REQ_INV;
+		rsp->ccode = CC_DATA_FIELD_INV;
 		free(data);
 		data = NULL;
 		return (-1);

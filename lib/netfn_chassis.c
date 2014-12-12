@@ -89,7 +89,7 @@ chassis_control(struct dummy_rq *req, struct dummy_rs *rsp)
 		g_sys_restart_cause = 0xF1;
 		break;
 	default:
-		rsp->ccode = CC_REQ_INV;
+		rsp->ccode = CC_DATA_FIELD_INV;
 		break;
 	}
 	return 0;
@@ -336,7 +336,7 @@ chassis_set_pwr_restore_pol(struct dummy_rq *req, struct dummy_rs *rsp)
 		g_pwr_restore_pol = 0x00;
 		break;
 	default:
-		rsp->ccode = CC_REQ_INV;
+		rsp->ccode = CC_DATA_FIELD_INV;
 		break;
 	}
 
