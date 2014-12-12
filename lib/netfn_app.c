@@ -57,6 +57,20 @@ struct ipmi_channel {
 	{ -1 }
 };
 
+#define UID_MAX 1
+#define UID_MIN 1
+
+struct ipmi_user {
+	uint8_t uid; /* [5:0] = 0..63 */
+	char name[17];
+	uint8_t password[21];
+	uint8_t password_size; /* password stored as 16b = 0; 20b = 1 */
+	uint8_t channel_access;
+} ipmi_users[] __attribute__((unused)) = {
+	{ 0x01, "admin", "", 1, 0x34 },
+	{ -1 }
+};
+
 /* get_channel_by_number - return ipmi_channel structure based on given IPMI
  * Channel number.
  *
@@ -313,7 +327,7 @@ user_get_access(struct dummy_rq *req, struct dummy_rs *rsp)
 	 * [3] - [5:0] count fixed names
 	 * [4] - bitfield
 	 */
-	data[0] = 0x3F & 0x03;
+	data[0] = 0x3F & UID_MAX;
 	data[1] = 0x40 | 0x02;
 	data[2] = 0x3F & 0x01;
 	data[3] = 0x64;
@@ -347,8 +361,63 @@ user_set_name(struct dummy_rq *req, struct dummy_rs *rsp)
 int
 user_set_password(struct dummy_rq *req, struct dummy_rs *rsp)
 {
-	rsp->ccode = CC_CMD_INV;
-	return (-1);
+	int i = 0;
+	int j = 0;
+	int rc = 0;
+	uint8_t password_size = 0;
+	uint8_t uid = 0;
+	if (req->msg.data_len < 2) {
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	}
+	password_size = req->msg.data[0] & 0x80;
+	uid = req->msg.data[0] & 0x1F;
+	req->msg.data[1] &= 0x03;
+	printf("Password size: %" PRIu8 "\n", password_size);
+	printf("UID: %" PRIu8 "\n", uid);
+	printf("Operation: %" PRIu8 "\n", req->msg.data[1]);
+
+	if (uid < UID_MIN || uid > UID_MAX) {
+		rsp->ccode = CC_PARAM_OOR;
+		return (-1);
+	}
+
+	switch (req->msg.data[1]) {
+	case 0x00:
+		/* disable user */
+		rsp->ccode = CC_CMD_INV;
+		rc = (-1);
+		break;
+	case 0x01:
+		/* enable user */
+		rsp->ccode = CC_CMD_INV;
+		rc = (-1);
+		break;
+	case 0x02:
+		/* set password */
+		if ((password_size == 0 && req->msg.data_len > 18)
+			|| (password_size == 0x80 && req->msg.data_len > 22)
+			|| (req->msg.data_len < 3)) {
+			rsp->ccode = CC_DATA_LEN;
+			rc = (-1);
+			break;
+		}
+		ipmi_users[uid].password_size = password_size;
+		for (i = 2, j = 0; i < req->msg.data_len; i++, j++) {
+			ipmi_users[uid].password[j] = req->msg.data[i];
+		}
+		printf("Password: '%s'\n", ipmi_users[uid].password);
+		break;
+	case 0x03:
+		/* test password */
+		rsp->ccode = CC_CMD_INV;
+		rc = (-1);
+		break;
+	default:
+		rsp->ccode = CC_DATA_FIELD_INV;
+		return rc;
+	}
+	return rc;
 }
 
 int
