@@ -29,6 +29,8 @@
 #include "fake-ipmistack/fake-ipmistack.h"
 #include "fake-ipmistack/helper.h"
 
+#include <string.h>
+
 struct ipmi_channel {
 	int number;
 	uint8_t ptype;
@@ -62,12 +64,13 @@ struct ipmi_channel {
 
 struct ipmi_user {
 	uint8_t uid; /* [5:0] = 0..63 */
-	char name[17];
+	uint8_t name[17];
 	uint8_t password[21];
 	uint8_t password_size; /* password stored as 16b = 0; 20b = 1 */
 	uint8_t channel_access;
 } ipmi_users[] = {
-	{ 0x01, "admin", "", 1, 0x34 },
+	{ -1 },
+	{ 0x01, "admin", "foo", 0, 0x34 },
 	{ -1 }
 };
 
@@ -366,21 +369,27 @@ user_set_password(struct dummy_rq *req, struct dummy_rs *rsp)
 	int rc = 0;
 	uint8_t password_size = 0;
 	uint8_t uid = 0;
+	uint8_t *password_ptr;
 	if (req->msg.data_len < 2) {
 		rsp->ccode = CC_DATA_LEN;
 		return (-1);
 	}
-	password_size = req->msg.data[0] & 0x80;
+	password_size = (req->msg.data[0] & 0x80) == 0x80 ? 1 : 0;
 	uid = req->msg.data[0] & 0x1F;
 	req->msg.data[1] &= 0x03;
-	printf("Password size: %" PRIu8 "\n", password_size);
-	printf("UID: %" PRIu8 "\n", uid);
-	printf("Operation: %" PRIu8 "\n", req->msg.data[1]);
+	printf("[INFO] Password size: %" PRIu8 "\n", password_size);
+	printf("[INFO] UID: %" PRIu8 "\n", uid);
+	printf("[INFO] Operation: %" PRIu8 "\n", req->msg.data[1]);
 
 	if (uid < UID_MIN || uid > UID_MAX) {
 		rsp->ccode = CC_PARAM_OOR;
 		return (-1);
 	}
+	printf("[INFO] DB Entry:\n");
+	printf("[INFO] Name: %s\n", ipmi_users[uid].name);
+	printf("[INFO] Password: %s\n", ipmi_users[uid].password);
+	printf("[INFO] Password_size: %" PRIu8 "\n", ipmi_users[uid].password_size);
+	printf("[INFO] ACL: %" PRIu8 "\n", ipmi_users[uid].channel_access);
 
 	switch (req->msg.data[1]) {
 	case 0x00:
@@ -396,7 +405,7 @@ user_set_password(struct dummy_rq *req, struct dummy_rs *rsp)
 	case 0x02:
 		/* set password */
 		if ((password_size == 0 && req->msg.data_len > 18)
-			|| (password_size == 0x80 && req->msg.data_len > 22)
+			|| (password_size == 1 && req->msg.data_len > 22)
 			|| (req->msg.data_len < 3)) {
 			rsp->ccode = CC_DATA_LEN;
 			rc = (-1);
@@ -406,12 +415,34 @@ user_set_password(struct dummy_rq *req, struct dummy_rs *rsp)
 		for (i = 2, j = 0; i < req->msg.data_len; i++, j++) {
 			ipmi_users[uid].password[j] = req->msg.data[i];
 		}
-		printf("Password: '%s'\n", ipmi_users[uid].password);
+		printf("[INFO] Password: '%s'\n", ipmi_users[uid].password);
+		rsp->ccode = CC_OK;
+		rc = 0;
 		break;
 	case 0x03:
 		/* test password */
-		rsp->ccode = CC_CMD_INV;
-		rc = (-1);
+		if ((password_size == 0 && req->msg.data_len > 18)
+			|| (password_size == 1 && req->msg.data_len > 22)
+			|| (req->msg.data_len < 3)) {
+			rsp->ccode = CC_DATA_LEN;
+			rc = (-1);
+			break;
+		}
+		printf("[INFO] Password size: %" PRIu8 ":%" PRIu8 "\n",
+				password_size, ipmi_users[uid].password_size);
+		if (password_size != ipmi_users[uid].password_size) {
+			rsp->ccode = 0x81;
+			rc = (-1);
+			break;
+		}
+		password_ptr = &req->msg.data[2];
+		if (strcmp(ipmi_users[uid].password, password_ptr) != 0) {
+			rsp->ccode = 0x80;
+			rc = (-1);
+			break;
+		}
+		rsp->ccode = CC_OK;
+		rc = 0;
 		break;
 	default:
 		rsp->ccode = CC_DATA_FIELD_INV;
