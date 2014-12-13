@@ -380,8 +380,23 @@ user_set_access(struct dummy_rq *req, struct dummy_rs *rsp)
 int
 user_set_name(struct dummy_rq *req, struct dummy_rs *rsp)
 {
-	rsp->ccode = CC_CMD_INV;
-	return (-1);
+	uint8_t uid;
+	uint8_t *name_ptr;
+	if (req->msg.data_len < 2 || req->msg.data_len > 17) {
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	}
+	uid = req->msg.data[0] & 0x1F;
+	printf("[INFO] UID: %" PRIu8 "\n", uid);
+	if (uid < UID_MIN || uid > UID_MAX) {
+		rsp->ccode = CC_PARAM_OOR;
+		return (-1);
+	}
+	name_ptr = &req->msg.data[1];
+	memset(ipmi_users[uid].name, '\0', 17);
+	memcpy(ipmi_users[uid].name, name_ptr, (req->msg.data_len - 1));
+	rsp->ccode = CC_OK;
+	return 0;
 }
 
 int
