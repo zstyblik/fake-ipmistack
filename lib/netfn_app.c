@@ -343,7 +343,30 @@ user_get_access(struct dummy_rq *req, struct dummy_rs *rsp)
 int
 user_get_name(struct dummy_rq *req, struct dummy_rs *rsp)
 {
-	rsp->ccode = CC_CMD_INV;
+	uint8_t uid = 0;
+	uint8_t *data;
+	uint8_t data_len = 17 * sizeof(uint8_t);
+	if (req->msg.data_len != 1) {
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	}
+	uid = req->msg.data[0] & 0x1F;
+	printf("[INFO] UID: %" PRIu8 "\n", uid);
+	if (uid < UID_MIN || uid > UID_MAX) {
+		rsp->ccode = CC_PARAM_OOR;
+		return (-1);
+	}
+	data = malloc(data_len);
+	if (data == NULL) {
+		printf("malloc fail\n");
+		rsp->ccode = CC_UNSPEC;
+		return (-1);
+	}
+	memset(data, '\0', data_len);
+	memcpy(data, ipmi_users[uid].name, data_len);
+	rsp->data = data;
+	rsp->data_len = data_len;
+	rsp->ccode = CC_OK;
 	return (-1);
 }
 
