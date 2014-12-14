@@ -59,8 +59,10 @@ struct ipmi_channel {
 	{ -1 }
 };
 
-#define UID_MAX 1
+#define UID_MAX 3
 #define UID_MIN 1
+#define UID_ENABLED 0x40
+#define UID_DISABLED 0x80
 
 struct ipmi_user {
 	uint8_t uid; /* [5:0] = 0..63 */
@@ -68,9 +70,12 @@ struct ipmi_user {
 	uint8_t password[21];
 	uint8_t password_size; /* password stored as 16b = 0; 20b = 1 */
 	uint8_t channel_access;
+	uint8_t enabled; /* enabled = 0x40; disabled = 0x80 */
 } ipmi_users[] = {
-	{ -1 },
-	{ 0x01, "admin", "foo", 0, 0x34 },
+	{ 0x00 },
+	{ 0x01, "admin", "foo", 0, 0x34, UID_ENABLED },
+	{ 0x02, "test1", "bar", 1, 0x34, UID_DISABLED },
+	{ 0x03, "", "", 0, 0x00, UID_DISABLED },
 	{ -1 }
 };
 
@@ -193,6 +198,48 @@ app_get_channel_info(struct dummy_rq *req, struct dummy_rs *rsp)
 	return 0;
 }
 
+/* count_enabled_users - return count of enabled IPMI users.
+ *
+ * returns: count of enabled IPMI users
+ */
+uint8_t
+count_enabled_users()
+{
+	int i = 0;
+	uint8_t counter = 0;
+	for (i = UID_MIN; i <= UID_MAX; i++) {
+		if (ipmi_users[i].uid < UID_MIN || ipmi_users[i].uid > UID_MAX) {
+			continue;
+		}
+		if (ipmi_users[i].enabled == UID_ENABLED) {
+			counter++;
+		}
+	}
+	return counter;
+}
+
+/* count_fixed_name_users() - counts number of IPMI users with fixed name.
+ *
+ * returns: count of IPMI users with fixed name
+ */
+uint8_t
+count_fixed_name_users()
+{
+	int i = 0;
+	uint8_t counter = 0;
+	for (i = UID_MIN; i <= UID_MAX; i++) {
+		if (ipmi_users[i].uid < UID_MIN || ipmi_users[i].uid > UID_MAX) {
+			continue;
+		}
+		if (strcmp(ipmi_users[i].name, "") == 0) {
+			continue;
+		} else {
+			counter++;
+		}
+	}
+	return counter;
+}
+
 /* (20.1) BMC Get Device ID */
 int
 mc_get_device_id(struct dummy_rq *req, struct dummy_rs *rsp)
@@ -304,6 +351,7 @@ user_get_access(struct dummy_rq *req, struct dummy_rs *rsp)
 {
 	uint8_t *data;
 	uint8_t data_len = 4 * sizeof(uint8_t);
+	uint8_t uid = 0;
 	if (req->msg.data_len != 2) {
 		rsp->ccode = CC_DATA_LEN;
 		return (-1);
@@ -311,10 +359,14 @@ user_get_access(struct dummy_rq *req, struct dummy_rs *rsp)
 	/* [0][7:4] - reserved, [3:0] - channel */
 	req->msg.data[0] &= 0x0F;
 	/* [1][7:6] - reserved, [5:0] - uid */
-	req->msg.data[1] &= 0x3F;
+	uid = req->msg.data[1] & 0x3F;
 	printf("Channel: %" PRIu8 "\n", req->msg.data[0]);
-	printf("UID: %" PRIu8 "\n", req->msg.data[1]);
+	printf("UID: %" PRIu8 "\n", uid);
 	if (is_valid_channel(req->msg.data[0])) {
+		rsp->ccode = CC_PARAM_OOR;
+		return (-1);
+	}
+	if (uid < UID_MIN || uid > UID_MAX) {
 		rsp->ccode = CC_PARAM_OOR;
 		return (-1);
 	}
@@ -331,9 +383,10 @@ user_get_access(struct dummy_rq *req, struct dummy_rs *rsp)
 	 * [4] - bitfield
 	 */
 	data[0] = 0x3F & UID_MAX;
-	data[1] = 0x40 | 0x02;
-	data[2] = 0x3F & 0x01;
-	data[3] = 0x64;
+	data[1] = ipmi_users[uid].enabled;
+	data[1] |= count_enabled_users();
+	data[2] = count_fixed_name_users();
+	data[3] = ipmi_users[uid].channel_access;
 	rsp->data_len = data_len;
 	rsp->data = data;
 	rsp->ccode = CC_OK;
