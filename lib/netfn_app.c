@@ -395,6 +395,7 @@ user_get_access(struct dummy_rq *req, struct dummy_rs *rsp)
 	return (-1);
 }
 
+/* (22.29) Get User Name Command */
 int
 user_get_name(struct dummy_rq *req, struct dummy_rs *rsp)
 {
@@ -425,6 +426,7 @@ user_get_name(struct dummy_rq *req, struct dummy_rs *rsp)
 	return (-1);
 }
 
+/* (22.26) Set User Access Command */
 int
 user_set_access(struct dummy_rq *req, struct dummy_rs *rsp)
 {
@@ -432,6 +434,7 @@ user_set_access(struct dummy_rq *req, struct dummy_rs *rsp)
 	return (-1);
 }
 
+/* (22.28) Set User Name Command */
 int
 user_set_name(struct dummy_rq *req, struct dummy_rs *rsp)
 {
@@ -454,6 +457,7 @@ user_set_name(struct dummy_rq *req, struct dummy_rs *rsp)
 	return 0;
 }
 
+/* (22.30) Set User Password Command */
 int
 user_set_password(struct dummy_rq *req, struct dummy_rs *rsp)
 {
