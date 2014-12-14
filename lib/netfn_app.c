@@ -487,13 +487,15 @@ user_set_password(struct dummy_rq *req, struct dummy_rs *rsp)
 	switch (req->msg.data[1]) {
 	case 0x00:
 		/* disable user */
-		rsp->ccode = CC_CMD_INV;
-		rc = (-1);
+		ipmi_users[uid].enabled = UID_DISABLED;
+		rsp->ccode = CC_OK;
+		rc = 0;
 		break;
 	case 0x01:
 		/* enable user */
-		rsp->ccode = CC_CMD_INV;
-		rc = (-1);
+		ipmi_users[uid].enabled = UID_ENABLED;
+		rsp->ccode = CC_OK;
+		rc = 0;
 		break;
 	case 0x02:
 		/* set password */
