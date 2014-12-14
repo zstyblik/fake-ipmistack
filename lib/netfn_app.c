@@ -79,31 +79,6 @@ struct ipmi_user {
 	{ -1 }
 };
 
-/* get_channel_by_number - return ipmi_channel structure based on given IPMI
- * Channel number.
- *
- * @chan_num: IPMI Channel number(needle)
- * @*ipmi_chan_ptr: pointer to ipmi_channel structure
- *
- * returns: 0 when channel is found, (-1) when it isn't/error
- */
-int
-get_channel_by_number(uint8_t chan_num, struct ipmi_channel *ipmi_chan_ptr)
-{
-	int i = 0;
-	int rc = (-1);
-	for (i = 0; ipmi_channels[i].number != (-1); i++) {
-		if (ipmi_channels[i].number == chan_num
-				&& ipmi_channels[i].ptype != 0xFF) {
-			memcpy(ipmi_chan_ptr, &ipmi_channels[i],
-					sizeof(struct ipmi_channel));
-			rc = 0;
-			break;
-		}
-	}
-	return rc;
-}
-
 /* (22.23) Get Channel Access */
 int
 app_get_channel_access(struct dummy_rq *req, struct dummy_rs *rsp)
@@ -238,6 +213,31 @@ count_fixed_name_users()
 		}
 	}
 	return counter;
+}
+
+/* get_channel_by_number - return ipmi_channel structure based on given IPMI
+ * Channel number.
+ *
+ * @chan_num: IPMI Channel number(needle)
+ * @*ipmi_chan_ptr: pointer to ipmi_channel structure
+ *
+ * returns: 0 when channel is found, (-1) when it isn't/error
+ */
+int
+get_channel_by_number(uint8_t chan_num, struct ipmi_channel *ipmi_chan_ptr)
+{
+	int i = 0;
+	int rc = (-1);
+	for (i = 0; ipmi_channels[i].number != (-1); i++) {
+		if (ipmi_channels[i].number == chan_num
+				&& ipmi_channels[i].ptype != 0xFF) {
+			memcpy(ipmi_chan_ptr, &ipmi_channels[i],
+					sizeof(struct ipmi_channel));
+			rc = 0;
+			break;
+		}
+	}
+	return rc;
 }
 
 /* (20.1) BMC Get Device ID */
