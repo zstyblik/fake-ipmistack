@@ -79,6 +79,8 @@ struct ipmi_user {
 	{ -1 }
 };
 
+int get_channel_by_number(uint8_t chan_num, struct ipmi_channel *ipmi_chan_ptr);
+
 /* (22.23) Get Channel Access */
 int
 app_get_channel_access(struct dummy_rq *req, struct dummy_rs *rsp)
