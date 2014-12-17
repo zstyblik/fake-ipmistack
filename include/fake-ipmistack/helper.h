@@ -30,5 +30,6 @@
 # define HELPER_H
 
 int is_valid_channel(uint8_t channel_num);
+int is_valid_priv_limit(uint8_t priv_limit);
 
 #endif

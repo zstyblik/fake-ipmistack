@@ -69,6 +69,11 @@ struct ipmi_user {
 	uint8_t name[17];
 	uint8_t password[21];
 	uint8_t password_size; /* password stored as 16b = 0; 20b = 1 */
+	/* channel_access - bitfield - [7] - reserved;
+	 * [6] - call-in call-back = 0, only call-b = 1;
+	 * [5] - disable link auth = 0; [4] - disable IPMI msg = 0;
+	 * [3:0] - user priv limit
+	 */ 
 	uint8_t channel_access;
 	uint8_t enabled; /* enabled = 0x40; disabled = 0x80 */
 } ipmi_users[] = {
@@ -430,8 +435,37 @@ user_get_name(struct dummy_rq *req, struct dummy_rs *rsp)
 int
 user_set_access(struct dummy_rq *req, struct dummy_rs *rsp)
 {
-	rsp->ccode = CC_CMD_INV;
-	return (-1);
+	uint8_t change_bit = 0;
+	uint8_t channel = 0;
+	uint8_t session_limit = 0;
+	uint8_t priv_limit = 0;
+	uint8_t uid = 0;
+	if (req->msg.data_len != 4) {
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	}
+	channel = req->msg.data[0] & 0x0F;
+	uid = req->msg.data[1] & 0x1F;
+	session_limit = req->msg.data[3] & 0x0F;
+	/* Session Limit isn't supported - at the moment. */
+	if (uid < UID_MIN || uid > UID_MAX || session_limit != 0
+			|| is_valid_channel(channel)) {
+		rsp->ccode = CC_PARAM_OOR;
+		return (-1);
+	}
+	priv_limit = req->msg.data[2] & 0x0F;
+	if (is_valid_priv_limit(priv_limit)) {
+		rsp->ccode = CC_PARAM_OOR;
+		return (-1);
+	}
+	change_bit = req->msg.data[0] & 0x80;
+	if (change_bit == 0x80) {
+		ipmi_users[uid].channel_access = req->msg.data[0] & 0x70;
+	}
+	ipmi_users[uid].channel_access &= 0xF0;
+	ipmi_users[uid].channel_access |= priv_limit;
+	rsp->ccode = CC_OK;
+	return 0;
 }
 
 /* (22.28) Set User Name Command */

@@ -43,3 +43,19 @@ is_valid_channel(uint8_t channel_num)
 		return (-1);
 	}
 }
+
+/* is_valid_priv_limit - check whether given priv limit is within range.
+ *
+ * @priv_limit: IPMI User Privilege Limit
+ *
+ * returns: 0 valid, (-1) invalid
+ */
+int
+is_valid_priv_limit(uint8_t priv_limit)
+{
+	if (priv_limit < 0x01 || priv_limit > 0x0f) {
+		return (-1);
+	} else {
+		return 0;
+	}
+}
