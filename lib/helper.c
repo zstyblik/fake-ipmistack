@@ -53,9 +53,9 @@ is_valid_channel(uint8_t channel_num)
 int
 is_valid_priv_limit(uint8_t priv_limit)
 {
-	if (priv_limit < 0x01 || priv_limit > 0x0f) {
-		return (-1);
-	} else {
+	if ((0x00 < priv_limit && priv_limit < 0x06) || priv_limit == 0x0f) {
 		return 0;
+	} else {
+		return (-1);
 	}
 }
