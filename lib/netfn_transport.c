@@ -96,6 +96,37 @@ transport_get_ip_stats(struct dummy_rq *req, struct dummy_rs *rsp)
 	return 0;
 }
 
+/* (23.3) Suspend BMC ARPs Command */
+int
+transport_suspend_bmc_arp(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	uint8_t *data = NULL;
+	uint8_t arp_rsp = 0;
+	uint8_t arp_suspend = 0;
+	uint8_t channel = 0;
+	uint8_t data_len = 1 * sizeof(uint8_t);
+	if (req->msg.data_len != 2) {
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	}
+	channel = req->msg.data[0] & 0x0F;
+	if (is_valid_channel(channel)) {
+		rsp->ccode = CC_PARAM_OOR;
+		return (-1);
+	}
+	arp_rsp = req->msg.data[1] & 0x02;
+	arp_suspend = req->msg.data[1] & 0x01;
+	printf("[INFO] ARP responses: %" PRIu8 "\n", arp_rsp);
+	printf("[INFO] ARP suspended: %" PRIu8 "\n", arp_suspend);
+	data[0] = 0x00;
+	data[0] |= arp_rsp;
+	data[0] |= arp_suspend;
+	rsp->ccode = 0;
+	rsp->data = data;
+	rsp->data_len = data_len;
+	return 0;
+}
+
 int
 netfn_transport_main(struct dummy_rq *req, struct dummy_rs *rsp)
 {
