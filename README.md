@@ -32,7 +32,7 @@ cmake ../ && make VERBOSE=1
 In case you'd like to use fake-ipmistack outside of IPMItool, you're probably
 wondering about its interface. It's using UNIX sockets to communicate with
 client as it was the simplest and the quickest way to do it. Feel free to
-check-out IPMItool's "dummy" interface to get the idea how to implemnt
+check-out IPMItool's "dummy" interface to get the idea how to implement
 fake-ipmistack compatible interface in your project.
 
 Structures used to shift data back and forth are in
