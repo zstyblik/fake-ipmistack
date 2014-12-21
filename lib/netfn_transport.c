@@ -57,7 +57,7 @@ transport_get_ip_stats(struct dummy_rq *req, struct dummy_rs *rsp)
 	}
 	data = malloc(data_len);
 	if (data == NULL) {
-		printf("malloc fail\n");
+		perror("malloc fail");
 		rsp->ccode = CC_UNSPEC;
 		return (-1);
 	}

@@ -202,7 +202,7 @@ serve_client(int client_sockfd)
 		if (req.msg.data_len > 0) {
 			rq_data_ptr = malloc(req.msg.data_len);
 			if (rq_data_ptr == NULL) {
-				printf("malloc fail\n");
+				perror("malloc fail");
 				exit(1);
 			}
 			memset(rq_data_ptr, 0, req.msg.data_len);

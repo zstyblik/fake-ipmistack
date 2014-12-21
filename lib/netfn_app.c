@@ -105,7 +105,7 @@ app_get_channel_access(struct dummy_rq *req, struct dummy_rs *rsp)
 	data = malloc(data_len);
 	if (data == NULL) {
 		rsp->ccode = CC_UNSPEC;
-		printf("malloc fail\n");
+		perror("malloc fail");
 		return (-1);
 	}
 	data[0] = req->msg.data[0];
@@ -143,7 +143,7 @@ app_get_channel_info(struct dummy_rq *req, struct dummy_rs *rsp)
 	data = malloc(data_len);
 	if (data == NULL) {
 		rsp->ccode = CC_UNSPEC;
-		printf("malloc fail\n");
+		perror("malloc fail");
 		return (-1);
 	}
 	data[0] = req->msg.data[0];
@@ -256,7 +256,7 @@ mc_get_device_id(struct dummy_rq *req, struct dummy_rs *rsp)
 	data = malloc(data_len);
 	if (data == NULL) {
 		rsp->ccode = CC_UNSPEC;
-		printf("malloc fail\n");
+		perror("malloc fail");
 		return (-1);
 	}
 	memset(data, 0, data_len);
@@ -305,7 +305,7 @@ mc_get_device_guid(struct dummy_rq *req, struct dummy_rs *rsp)
 	uint8_t *data = NULL;
 	data = malloc(data_len);
 	if (data == NULL) {
-		printf("malloc fail\n");
+		perror("malloc fail");
 		rsp->ccode = CC_UNSPEC;
 		return (-1);
 	}
@@ -341,7 +341,7 @@ mc_selftest(struct dummy_rq *req, struct dummy_rs *rsp)
 	uint8_t data_len = 2 * sizeof(uint8_t);
 	data = malloc(data_len);
 	if (data == NULL) {
-		printf("malloc fail\n");
+		perror("malloc fail");
 		rsp->ccode = CC_UNSPEC;
 		return (-1);
 	}
@@ -379,7 +379,7 @@ user_get_access(struct dummy_rq *req, struct dummy_rs *rsp)
 	}
 	data = malloc(data_len);
 	if (data == NULL) {
-		printf("malloc fail\n");
+		perror("malloc fail");
 		rsp->ccode = CC_UNSPEC;
 		return (-1);
 	}
@@ -419,7 +419,7 @@ user_get_name(struct dummy_rq *req, struct dummy_rs *rsp)
 	}
 	data = malloc(data_len);
 	if (data == NULL) {
-		printf("malloc fail\n");
+		perror("malloc fail");
 		rsp->ccode = CC_UNSPEC;
 		return (-1);
 	}

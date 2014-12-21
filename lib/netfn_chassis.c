@@ -103,7 +103,7 @@ chassis_get_capa(struct dummy_rq *req, struct dummy_rs *rsp)
 	uint8_t data_len = 5 * sizeof(uint8_t);
 	data = malloc(data_len);
 	if (data == NULL) {
-		printf("malloc fail\n");
+		perror("malloc fail");
 		rsp->ccode = CC_UNSPEC;
 		return (-1);
 	}
@@ -126,7 +126,7 @@ chassis_get_poh_counter(struct dummy_rq *req, struct dummy_rs *rsp)
 	uint8_t data_len = 5 * sizeof(uint8_t);
 	data = malloc(data_len);
 	if (data == NULL) {
-		printf("malloc fail\n");
+		perror("malloc fail");
 		rsp->ccode = CC_UNSPEC;
 		return (-1);
 	}
@@ -149,7 +149,7 @@ chassis_get_status(struct dummy_rq *req, struct dummy_rs *rsp)
 	uint8_t data_len = 4 * sizeof(uint8_t);
 	data = malloc(data_len);
 	if (data == NULL) {
-		printf("malloc fail\n");
+		perror("malloc fail");
 		rsp->ccode = CC_UNSPEC;
 		return (-1);
 	}
@@ -179,7 +179,7 @@ chassis_get_sysres_cause(struct dummy_rq *req, struct dummy_rs *rsp)
 	uint8_t data_len = 2 * sizeof(uint8_t);
 	data = malloc(data_len);
 	if (data == NULL) {
-		printf("malloc fail\n");
+		perror("malloc fail");
 		rsp->ccode = CC_UNSPEC;
 		return (-1);
 	}
@@ -314,7 +314,7 @@ chassis_set_pwr_restore_pol(struct dummy_rq *req, struct dummy_rs *rsp)
 	}
 	data = malloc(data_len);
 	if (data == NULL) {
-		printf("malloc fail\n");
+		perror("malloc fail");
 		rsp->ccode = CC_UNSPEC;
 		return (-1);
 	}

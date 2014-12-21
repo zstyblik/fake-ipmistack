@@ -41,7 +41,7 @@ sel_get_time(struct dummy_rq *req, struct dummy_rs *rsp)
 	data = malloc(data_len);
 	if (data == NULL) {
 		rsp->ccode = CC_UNSPEC;
-		printf("malloc fail\n");
+		perror("malloc fail");
 		return (-1);
 	}
 	data[0] = bmc_time[0];
