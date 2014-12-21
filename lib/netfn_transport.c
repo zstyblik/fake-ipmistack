@@ -150,8 +150,7 @@ netfn_transport_main(struct dummy_rq *req, struct dummy_rs *rsp)
 		rc = (-1);
 		break;
 	case TRANSPORT_SUSPEND_BMC_ARP:
-		rsp->ccode = CC_CMD_INV;
-		rc = (-1);
+		rc = transport_suspend_bmc_arp(req, rsp);
 		break;
 	default:
 		rsp->ccode = CC_CMD_INV;
