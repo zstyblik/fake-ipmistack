@@ -37,7 +37,8 @@
 int
 is_valid_channel(uint8_t channel_num)
 {
-	if (channel_num >= 0x00 && channel_num <= 0x0F) {
+	if ((channel_num >= 0x00 && channel_num <= 0x0B)
+		|| (channel_num >= 0x0E && channel_num <= 0x0F)) {
 		return 0;
 	} else {
 		return (-1);
