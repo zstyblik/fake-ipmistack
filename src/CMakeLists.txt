@@ -4,6 +4,7 @@ link_directories(${CMAKE_BINARY_DIR}/lib)
 add_executable(fake-ipmistack fake-ipmistack.c)
 target_link_libraries(fake-ipmistack ${CORELIBS} netfn_app)
 target_link_libraries(fake-ipmistack ${CORELIBS} netfn_chassis)
+target_link_libraries(fake-ipmistack ${CORELIBS} netfn_sensor)
 target_link_libraries(fake-ipmistack ${CORELIBS} netfn_storage)
 target_link_libraries(fake-ipmistack ${CORELIBS} netfn_transport)
 

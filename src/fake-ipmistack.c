@@ -237,6 +237,8 @@ serve_client(int client_sockfd)
 			netfn_app_main(&req, &rsp);
 		} else if (req.msg.netfn == NETFN_CHASSIS) {
 			netfn_chassis_main(&req, &rsp);
+		} else if (req.msg.netfn == NETFN_SENSOR) {
+			netfn_sensor_main(&req, &rsp);
 		} else if (req.msg.netfn == NETFN_STORAGE) {
 			netfn_storage_main(&req, &rsp);
 		} else if (req.msg.netfn == NETFN_TRANSPORT) {

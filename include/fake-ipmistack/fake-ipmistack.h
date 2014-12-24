@@ -107,6 +107,8 @@ struct dummy_rs {
 # define CHASSIS_SET_PWR_CYCLE_INT 0x0B
 # define CHASSIS_GET_POH_COUNTER 0x0F
 
+# define PEF_GET_CAPABILITIES 0x10
+
 # define SEL_GET_TIME 0x48
 # define SEL_SET_TIME 0x49
 
