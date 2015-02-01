@@ -464,6 +464,7 @@ user_set_access(struct dummy_rq *req, struct dummy_rs *rsp)
 	}
 	ipmi_users[uid].channel_access &= 0xF0;
 	ipmi_users[uid].channel_access |= priv_limit;
+	printf("Channel Access: %x\n", ipmi_users[uid].channel_access);
 	rsp->ccode = CC_OK;
 	return 0;
 }
