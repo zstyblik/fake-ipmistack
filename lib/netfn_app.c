@@ -301,7 +301,8 @@ mc_get_device_guid(struct dummy_rq *req, struct dummy_rs *rsp)
 	/* TODO - GUID generator ???
 	 * http://download.intel.com/design/archives/wfm/downloads/base20.pdf
 	 */
-	int data_len = 15;
+	int i = 0;
+	int data_len = 16;
 	uint8_t *data = NULL;
 	data = malloc(data_len);
 	if (data == NULL) {
@@ -309,7 +310,9 @@ mc_get_device_guid(struct dummy_rq *req, struct dummy_rs *rsp)
 		rsp->ccode = CC_UNSPEC;
 		return (-1);
 	}
-	memset(&data, 0, data_len);
+	for (i = 0; i < data_len; i++) {
+		data[i] = i;
+	}
 	rsp->data_len = data_len;
 	rsp->data = data;
 	return 0;
