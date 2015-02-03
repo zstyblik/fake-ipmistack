@@ -79,6 +79,7 @@ struct dummy_rs {
 # define NETFN_GRP_EXT 0x2C
 # define NETFN_OEM_GRP 0x2E
 /* Commands */
+# define APP_SET_CHANNEL_ACCESS 0x40
 # define APP_GET_CHANNEL_ACCESS 0x41
 # define APP_GET_CHANNEL_INFO 0x42
 

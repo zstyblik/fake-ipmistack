@@ -178,6 +178,47 @@ app_get_channel_info(struct dummy_rq *req, struct dummy_rs *rsp)
 	return 0;
 }
 
+/* (22.22) Set Channel Access */
+uint8_t
+app_set_channel_access(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	uint8_t channel = 0;
+	uint8_t change_access = 0;
+	uint8_t change_privs = 0;
+	if (req->msg.data_len != 3) {
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	}
+	channel = req->msg.data[0] & 0x0F;
+	change_access = req->msg.data[1] & 0xC0;
+	change_privs = req->msg.data[2] & 0xC0;
+	if (is_valid_channel(channel)
+			|| change_access == 0xC0 || change_privs == 0xC0) {
+		rsp->ccode = CC_PARAM_OOR;
+		return (-1);
+	}
+	/* Note: since there is no volatile/non-volatile settings split,
+	 * it doesn't matter to us.
+	 */
+	printf("[INFO] Channel: %x\n", channel);
+	printf("[INFO] Channel Access: %x\n",
+			ipmi_channels[channel].capabilities);
+	printf("[INFO] Channel Privileges: %x\n",
+			ipmi_channels[channel].priv_level);
+	if (change_access != 0) {
+		printf("[INFO] New Channel Access: %x\n",
+				req->msg.data[1] & 0x3F);
+		ipmi_channels[channel].capabilities = req->msg.data[1] & 0x3F;
+	}
+	if (change_privs != 0) {
+		printf("[INFO] New Channel Privileges: %x\n",
+				req->msg.data[2] & 0x0F);
+		ipmi_channels[channel].priv_level = req->msg.data[2] & 0x0F;
+	}
+	rsp->ccode = CC_OK;
+	return 0;
+}
+
 /* count_enabled_users - return count of enabled IPMI users.
  *
  * returns: count of enabled IPMI users
@@ -603,6 +644,9 @@ netfn_app_main(struct dummy_rq *req, struct dummy_rs *rsp)
 		break;
 	case APP_GET_CHANNEL_INFO:
 		rc = app_get_channel_info(req, rsp);
+		break;
+	case APP_SET_CHANNEL_ACCESS:
+		rc = app_set_channel_access(req, rsp);
 		break;
 	case BMC_GET_DEVICE_ID:
 		rc = mc_get_device_id(req, rsp);
