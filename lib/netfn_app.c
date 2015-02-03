@@ -32,7 +32,7 @@
 #include <string.h>
 
 struct ipmi_channel {
-	int number;
+	uint8_t number;
 	uint8_t ptype;
 	uint8_t mtype;
 	uint8_t sessions;
@@ -40,22 +40,22 @@ struct ipmi_channel {
 	uint8_t priv_level;
 	char desc[24];
 } ipmi_channels[] = {
-	{ 0xF0, 0x02, 0x01, 0x00, 0x00, 0x00, "IPMBv1.0, no-session" },
-	{ 0xF1, 0x02, 0x04, 0x80, 0xC2, 0xF5, "802.3 LAN, m-session" },
-	{ 0xF2, 0x02, 0x05, 0x40, 0x00, 0x00, "Serial/Modem, s-session" },
-	{ 0xF3, 0x02, 0x02, 0x00, 0x00, 0x00, "ICMB no-session" },
-	{ 0xF4, 0x04, 0x09, 0x00, 0x00, 0x00, "IPMI-SMBus no-session" },
-	{ 0xF5, 0xFF },
-	{ 0xF6, 0xFF },
-	{ 0xF7, 0xFF },
-	{ 0xF8, 0xFF },
-	{ 0xF9, 0xFF },
-	{ 0xFA, 0xFF },
-	{ 0xFB, 0xFF },
-	{ 0xFC, 0xFF },
-	{ 0xFD, 0xFF },
-	{ 0xFE, 0xFF },
-	{ 0xFF, 0x05, 0x0C, 0x00, 0x00, 0x00, "KCS-SysIntf s-less" },
+	{ 0x00, 0x02, 0x01, 0x00, 0x00, 0x00, "IPMBv1.0, no-session" },
+	{ 0x01, 0x02, 0x04, 0x80, 0x3A, 0x05, "802.3 LAN, m-session" },
+	{ 0x02, 0x02, 0x05, 0x40, 0x00, 0x00, "Serial/Modem, s-session" },
+	{ 0x03, 0x02, 0x02, 0x00, 0x00, 0x00, "ICMB no-session" },
+	{ 0x04, 0x04, 0x09, 0x00, 0x00, 0x00, "IPMI-SMBus no-session" },
+	{ 0x05, 0xFF },
+	{ 0x06, 0xFF },
+	{ 0x07, 0xFF },
+	{ 0x08, 0xFF },
+	{ 0x09, 0xFF },
+	{ 0x0A, 0xFF },
+	{ 0x0B, 0xFF },
+	{ 0x0C, 0xFF },
+	{ 0x0D, 0xFF },
+	{ 0x0E, 0xFF },
+	{ 0x0F, 0x05, 0x0C, 0x00, 0x00, 0x00, "KCS-SysIntf s-less" },
 	{ -1 }
 };
 
@@ -108,11 +108,10 @@ app_get_channel_access(struct dummy_rq *req, struct dummy_rs *rsp)
 		perror("malloc fail");
 		return (-1);
 	}
-	data[0] = req->msg.data[0];
-	data[0]|= 0xF0;
-	if (data[0] == 0xFE) {
+	data[0] = req->msg.data[0] & 0x0F;
+	if (data[0] == 0x0E) {
 		/* TODO - de-hard-code this */
-		data[0] = 0xFF;
+		data[0] = 0x0F;
 	}
 	if (get_channel_by_number(data[0], &channel_t) != 0) {
 		rsp->ccode = CC_DATA_FIELD_INV;
@@ -147,10 +146,9 @@ app_get_channel_info(struct dummy_rq *req, struct dummy_rs *rsp)
 		return (-1);
 	}
 	data[0] = req->msg.data[0];
-	data[0]|= 0xF0;
-	if (data[0] == 0xFE) {
+	if (data[0] == 0x0E) {
 		/* TODO - de-hard-code this */
-		data[0] = 0xFF;
+		data[0] = 0x0F;
 	}
 	printf("[DEBUG] Channel is: %x\n", data[0]);
 	if (get_channel_by_number(data[0], &channel_t) != 0) {
@@ -170,10 +168,10 @@ app_get_channel_info(struct dummy_rq *req, struct dummy_rs *rsp)
 	/* Auxilary Info */
 	data[7] = 0;
 	data[8] = 0;
-	if (data[0] == 0xFF) {
+	if (data[0] == 0x0F) {
 		/* TODO - no idea, nothing */
-		data[7] = 0xFF;
-		data[8] = 0xFF;
+		data[7] = 0x0F;
+		data[8] = 0x0F;
 	}
 	rsp->data = data;
 	rsp->data_len = data_len;
@@ -237,7 +235,7 @@ get_channel_by_number(uint8_t chan_num, struct ipmi_channel *ipmi_chan_ptr)
 	int rc = (-1);
 	for (i = 0; ipmi_channels[i].number != (-1); i++) {
 		if (ipmi_channels[i].number == chan_num
-				&& ipmi_channels[i].ptype != 0xFF) {
+				&& ipmi_channels[i].ptype != 0x0F) {
 			memcpy(ipmi_chan_ptr, &ipmi_channels[i],
 					sizeof(struct ipmi_channel));
 			rc = 0;
