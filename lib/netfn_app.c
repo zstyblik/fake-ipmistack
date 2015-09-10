@@ -448,7 +448,7 @@ user_get_name(struct dummy_rq *req, struct dummy_rs *rsp)
 {
 	uint8_t uid = 0;
 	uint8_t *data;
-	uint8_t data_len = 17 * sizeof(uint8_t);
+	uint8_t data_len = 16 * sizeof(uint8_t);
 	if (req->msg.data_len != 1) {
 		rsp->ccode = CC_DATA_LEN;
 		return (-1);
