@@ -73,7 +73,7 @@ struct ipmi_user {
 	 * [6] - call-in call-back = 0, only call-b = 1;
 	 * [5] - disable link auth = 0; [4] - disable IPMI msg = 0;
 	 * [3:0] - user priv limit
-	 */ 
+	 */
 	uint8_t channel_access;
 	uint8_t enabled; /* enabled = 0x40; disabled = 0x80 */
 } ipmi_users[] = {
