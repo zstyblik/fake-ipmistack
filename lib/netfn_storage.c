@@ -31,6 +31,47 @@
 
 static uint8_t bmc_time[4];
 
+/* (31.2) Get SEL Info */
+int
+sel_get_info(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	uint8_t *data;
+	uint8_t data_len = 14 * sizeof(uint8_t);
+	data = malloc(data_len);
+	if (data == NULL) {
+		rsp->ccode = CC_UNSPEC;
+		perror("malloc fail");
+		return (-1);
+	}
+	/* SEL Version */
+	data[0] = 0x51;
+	/* Num of Entries - LS, MS Byte */
+	data[1] = 0;
+	data[2] = 0;
+	/* Free space in bytes - LS, MS */
+	data[3] = 0x0;
+	data[4] = 0x1;
+	/* Most recent addition tstamp */
+	data[5] = 0;
+	data[6] = 0;
+	data[7] = 0;
+	data[8] = 0;
+	/* Most recent erase tstamp */
+	data[9] = 0;
+	data[10] = 0;
+	data[11] = 0;
+	data[12] = 0;
+	/* Op-support:
+	 * - Overflow[7] - & 0xFF for on
+	 * - Support[3:0] - delete, partial, reserve, get alloc
+	 */
+	data[13] = 0xF;
+	rsp->data = data;
+	rsp->data_len = data_len;
+	rsp->ccode = CC_OK;
+	return 0;
+}
+
 /* (31.10) Get SEL Time */
 int
 sel_get_time(struct dummy_rq *req, struct dummy_rs *rsp)
@@ -93,6 +134,9 @@ netfn_storage_main(struct dummy_rq *req, struct dummy_rs *rsp)
 	rsp->data_len = 0;
 	rsp->data = NULL;
 	switch (req->msg.cmd) {
+	case SEL_GET_INFO:
+		rc = sel_get_info(req, rsp);
+		break;
 	case SEL_GET_TIME:
 		rc = sel_get_time(req, rsp);
 		break;
