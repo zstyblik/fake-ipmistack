@@ -27,9 +27,12 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include "fake-ipmistack/fake-ipmistack.h"
+
+#include <stdlib.h>
 #include <time.h>
 
 static uint8_t bmc_time[4];
+static uint16_t sel_resrv_id = 0;
 
 /* (31.2) Get SEL Info */
 int
@@ -66,6 +69,28 @@ sel_get_info(struct dummy_rq *req, struct dummy_rs *rsp)
 	 * - Support[3:0] - delete, partial, reserve, get alloc
 	 */
 	data[13] = 0xF;
+	rsp->data = data;
+	rsp->data_len = data_len;
+	rsp->ccode = CC_OK;
+	return 0;
+}
+
+/* (31.4) Reserve SEL */
+int
+sel_get_reservation(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	uint8_t *data;
+	uint8_t data_len = 2 * sizeof(uint8_t);
+	data = malloc(data_len);
+	if (data == NULL) {
+		rsp->ccode = CC_UNSPEC;
+		perror("malloc fail");
+		return (-1);
+	}
+	sel_resrv_id = (uint16_t)rand();
+	printf("[INFO] SEL Reservation ID: %i\n", sel_resrv_id);
+	data[0] = sel_resrv_id >> 0;
+	data[1] = sel_resrv_id >> 8;
 	rsp->data = data;
 	rsp->data_len = data_len;
 	rsp->ccode = CC_OK;
@@ -136,6 +161,9 @@ netfn_storage_main(struct dummy_rq *req, struct dummy_rs *rsp)
 	switch (req->msg.cmd) {
 	case SEL_GET_INFO:
 		rc = sel_get_info(req, rsp);
+		break;
+	case SEL_GET_RESERVATION:
+		rc = sel_get_reservation(req, rsp);
 		break;
 	case SEL_GET_TIME:
 		rc = sel_get_time(req, rsp);

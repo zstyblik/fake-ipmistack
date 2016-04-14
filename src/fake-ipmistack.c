@@ -32,6 +32,9 @@
 #include "fake-ipmistack/netfn_storage.h"
 #include "fake-ipmistack/netfn_transport.h"
 
+#include <stdlib.h>
+#include <time.h>
+
 /* BMC rq [bytes]
  * [1] NetFn(6)/LUN(2)
  * [2] Cmd
@@ -302,6 +305,7 @@ main()
 	struct sockaddr_un client_address;
 	int server_sockfd, client_sockfd;
 	int server_len;
+	srand(time(NULL));
 	socklen_t client_len;
 	unlink(DUMMY_SOCKET_PATH);
 	server_sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
