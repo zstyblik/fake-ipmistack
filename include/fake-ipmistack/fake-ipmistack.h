@@ -112,6 +112,7 @@ struct dummy_rs {
 
 # define SEL_GET_INFO 0x40
 # define SEL_GET_RESERVATION 0x42
+# define SEL_CLEAR 0x47
 # define SEL_GET_TIME 0x48
 # define SEL_SET_TIME 0x49
 

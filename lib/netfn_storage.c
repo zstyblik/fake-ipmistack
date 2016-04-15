@@ -34,6 +34,67 @@
 static uint8_t bmc_time[4];
 static uint16_t sel_resrv_id = 0;
 
+/* (31.9) Clear SEL */
+int
+sel_clear(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+# define SEL_CLR_COMPLETE 1
+# define SEL_CLR_IN_PROGRESS 0
+	uint8_t *data;
+	uint8_t data_len = 1 * sizeof(uint8_t);
+	uint16_t resrv_id_rcv = 0xF;
+	uint8_t action;
+	data = malloc(data_len);
+	if (data == NULL) {
+		rsp->ccode = CC_UNSPEC;
+		perror("malloc fail");
+		return (-1);
+	}
+	if (req->msg.data_len != 6) {
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	}
+
+	resrv_id_rcv = req->msg.data[1] << 8;
+	resrv_id_rcv |= req->msg.data[0];
+
+	printf("[INFO] SEL Reservation ID: %" PRIu16 "\n",
+			sel_resrv_id);
+	printf("[INFO] SEL Reservation ID CLI: %" PRIu16 "\n",
+			resrv_id_rcv);
+	printf("[INFO] SEL Request: %" PRIX8 ", %" PRIX8 ", %" PRIX8 "\n",
+			req->msg.data[2], req->msg.data[3],
+			req->msg.data[4]);
+	printf("[INFO] SEL Action: %" PRIX8 "\n", req->msg.data[5]);
+
+	if (resrv_id_rcv != sel_resrv_id) {
+		printf("[ERROR] SEL Reservation ID mismatch.\n");
+		rsp->ccode = CC_DATA_FIELD_INV;
+		return (-1);
+	} else if (req->msg.data[2] != 0x43
+			|| req->msg.data[3] != 0x4C
+			|| req->msg.data[4] != 0x52) {
+		perror("[ERROR] Expected CLR.\n");
+		rsp->ccode = CC_DATA_FIELD_INV;
+		return (-1);
+	} else if (req->msg.data[5] != 0x00
+			&& req->msg.data[5] != 0xAA) {
+		printf("[ERROR] Expected 0x00 or 0xAA.\n");
+		rsp->ccode = CC_DATA_FIELD_INV;
+		return (-1);
+	}
+
+	rsp->data = data;
+	rsp->data_len = data_len;
+	rsp->ccode = CC_OK;
+	if (req->msg.data[5] == 0xAA) {
+		rsp->data[0] = SEL_CLR_IN_PROGRESS;
+	} else {
+		rsp->data[0] = SEL_CLR_COMPLETE;
+	}
+	return 0;
+}
+
 /* (31.2) Get SEL Info */
 int
 sel_get_info(struct dummy_rq *req, struct dummy_rs *rsp)
@@ -159,6 +220,9 @@ netfn_storage_main(struct dummy_rq *req, struct dummy_rs *rsp)
 	rsp->data_len = 0;
 	rsp->data = NULL;
 	switch (req->msg.cmd) {
+	case SEL_CLEAR:
+		rc = sel_clear(req, rsp);
+		break;
 	case SEL_GET_INFO:
 		rc = sel_get_info(req, rsp);
 		break;
