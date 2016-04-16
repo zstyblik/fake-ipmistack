@@ -111,6 +111,7 @@ struct dummy_rs {
 # define PEF_GET_CAPABILITIES 0x10
 
 # define SEL_GET_INFO 0x40
+# define SEL_GET_ALLOCATION_INFO 0x41
 # define SEL_GET_RESERVATION 0x42
 # define SEL_CLEAR 0x47
 # define SEL_GET_TIME 0x48

@@ -95,6 +95,42 @@ sel_clear(struct dummy_rq *req, struct dummy_rs *rsp)
 	return 0;
 }
 
+/* (31.3) Get SEL Allocation Info */
+int
+sel_get_allocation_info(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	uint8_t *data;
+	uint8_t data_len = 9;
+	data = malloc(data_len);
+	if (data == NULL) {
+		rsp->ccode = CC_UNSPEC;
+		perror("malloc fail");
+		return (-1);
+	}
+	if (req->msg.data_len > 0) {
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	}
+	/* Number of possible allocs */
+	data[0] = 0;
+	data[1] = 0;
+	/* Alloc unit size in bytes */
+	data[2] = 0;
+	data[3] = 0;
+	/* Number of free allocs */
+	data[4] = 0;
+	data[5] = 0;
+	/* Largest free block in alloc units */
+	data[6] = 0;
+	data[7] = 0;
+	/* Max record size in alloc units */
+	data[8] = 0;
+	rsp->data = data;
+	rsp->data_len = data_len;
+	rsp->ccode = CC_OK;
+	return 0;
+}
+
 /* (31.2) Get SEL Info */
 int
 sel_get_info(struct dummy_rq *req, struct dummy_rs *rsp)
@@ -222,6 +258,9 @@ netfn_storage_main(struct dummy_rq *req, struct dummy_rs *rsp)
 	switch (req->msg.cmd) {
 	case SEL_CLEAR:
 		rc = sel_clear(req, rsp);
+		break;
+	case SEL_GET_ALLOCATION_INFO:
+		rc = sel_get_allocation_info(req, rsp);
 		break;
 	case SEL_GET_INFO:
 		rc = sel_get_info(req, rsp);
