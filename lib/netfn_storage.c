@@ -32,7 +32,6 @@
 #include <time.h>
 
 static uint8_t bmc_time[4];
-static uint16_t sel_resrv_id = 0;
 
 # define SEL_CLR_COMPLETE 1
 # define SEL_CLR_IN_PROGRESS 0
@@ -53,6 +52,7 @@ struct ipmi_sel {
 	uint8_t support_reserve;
 	uint8_t support_get_alloc;
 	uint8_t clear_status;
+	uint16_t resrv_id;
 } ipmi_sel_status = {
 	.version = 0x51,
 	.entries = 0,
@@ -64,6 +64,7 @@ struct ipmi_sel {
 	.support_reserve = SEL_SUPPORT_RESERVE,
 	.support_get_alloc = SEL_SUPPORT_GET_ALLOC,
 	.clear_status = SEL_CLR_COMPLETE,
+	.resrv_id = 0,
 };
 
 struct ipmi_sel_entry {
@@ -180,7 +181,7 @@ sel_clear(struct dummy_rq *req, struct dummy_rs *rsp)
 	resrv_id_rcv |= req->msg.data[0];
 
 	printf("[INFO] SEL Reservation ID: %" PRIu16 "\n",
-			sel_resrv_id);
+			ipmi_sel_status.resrv_id);
 	printf("[INFO] SEL Reservation ID CLI: %" PRIu16 "\n",
 			resrv_id_rcv);
 	printf("[INFO] SEL Request: %" PRIX8 ", %" PRIX8 ", %" PRIX8 "\n",
@@ -188,7 +189,7 @@ sel_clear(struct dummy_rq *req, struct dummy_rs *rsp)
 			req->msg.data[4]);
 	printf("[INFO] SEL Action: %" PRIX8 "\n", req->msg.data[5]);
 
-	if (resrv_id_rcv != sel_resrv_id) {
+	if (resrv_id_rcv != ipmi_sel_status.resrv_id) {
 		printf("[ERROR] SEL Reservation ID mismatch.\n");
 		rsp->ccode = CC_DATA_FIELD_INV;
 		return (-1);
@@ -340,10 +341,10 @@ sel_get_reservation(struct dummy_rq *req, struct dummy_rs *rsp)
 		perror("malloc fail");
 		return (-1);
 	}
-	sel_resrv_id = (uint16_t)rand();
-	printf("[INFO] SEL Reservation ID: %i\n", sel_resrv_id);
-	data[0] = sel_resrv_id >> 0;
-	data[1] = sel_resrv_id >> 8;
+	ipmi_sel_status.resrv_id = (uint16_t)rand();
+	printf("[INFO] SEL Reservation ID: %i\n", ipmi_sel_status.resrv_id);
+	data[0] = ipmi_sel_status.resrv_id >> 0;
+	data[1] = ipmi_sel_status.resrv_id >> 8;
 	rsp->data = data;
 	rsp->data_len = data_len;
 	rsp->ccode = CC_OK;
