@@ -34,6 +34,8 @@
 static uint8_t bmc_time[4];
 static uint16_t sel_resrv_id = 0;
 
+# define SEL_CLR_COMPLETE 1
+# define SEL_CLR_IN_PROGRESS 0
 # define SEL_OVERFLOW 0x80
 # define SEL_SUPPORT_DELETE 0x08
 # define SEL_SUPPORT_PARTIAL_ADD 0x04
@@ -50,6 +52,7 @@ struct ipmi_sel {
 	uint8_t support_partial_add;
 	uint8_t support_reserve;
 	uint8_t support_get_alloc;
+	uint8_t clear_status;
 } ipmi_sel_status = {
 	.version = 0x51,
 	.entries = 0,
@@ -60,6 +63,7 @@ struct ipmi_sel {
 	.support_partial_add = SEL_SUPPORT_PARTIAL_ADD,
 	.support_reserve = SEL_SUPPORT_RESERVE,
 	.support_get_alloc = SEL_SUPPORT_GET_ALLOC,
+	.clear_status = SEL_CLR_COMPLETE,
 };
 
 struct ipmi_sel_entry {
@@ -162,8 +166,6 @@ sel_add_entry(struct dummy_rq *req, struct dummy_rs *rsp)
 int
 sel_clear(struct dummy_rq *req, struct dummy_rs *rsp)
 {
-# define SEL_CLR_COMPLETE 1
-# define SEL_CLR_IN_PROGRESS 0
 	uint8_t action;
 	uint8_t *data;
 	uint8_t data_len = 1 * sizeof(uint8_t);
@@ -196,11 +198,27 @@ sel_clear(struct dummy_rq *req, struct dummy_rs *rsp)
 		perror("[ERROR] Expected CLR.\n");
 		rsp->ccode = CC_DATA_FIELD_INV;
 		return (-1);
-	} else if (req->msg.data[5] != 0x00
-			&& req->msg.data[5] != 0xAA) {
-		printf("[ERROR] Expected 0x00 or 0xAA.\n");
-		rsp->ccode = CC_DATA_FIELD_INV;
-		return (-1);
+	}
+
+	switch (req->msg.data[5]) {
+		case 0xAA:
+			for (record_id = 1;
+					ipmi_sel_entries[record_id].record_id != 0xFFFF;
+					record_id++) {
+				printf("[INFO] Clearing SEL Entry ID: %" PRIu16 "\n",
+						record_id);
+				ipmi_sel_entries[record_id].is_free = 0x1;
+			}
+			ipmi_sel_status.clear_status = SEL_CLR_IN_PROGRESS;
+			set_sel_overflow(0);
+			break;
+		case 0x00:
+			ipmi_sel_status.clear_status = SEL_CLR_COMPLETE;
+			break;
+		default:
+			printf("[ERROR] Expected 0x00 or 0xAA.\n");
+			rsp->ccode = CC_DATA_FIELD_INV;
+			return (-1);
 	}
 
 	data = malloc(data_len);
@@ -210,19 +228,7 @@ sel_clear(struct dummy_rq *req, struct dummy_rs *rsp)
 		return (-1);
 	}
 
-	for (record_id = 1; ipmi_sel_entries[record_id].record_id != 0xFFFF;
-			record_id++) {
-		printf("[INFO] Clearing SEL Entry ID: %" PRIu16 "\n",
-				record_id);
-		ipmi_sel_entries[record_id].is_free = 0x1;
-	}
-
-	if (req->msg.data[5] == 0xAA) {
-		data[0] = SEL_CLR_IN_PROGRESS;
-	} else {
-		data[0] = SEL_CLR_COMPLETE;
-	}
-
+	data[0] = ipmi_sel_status.clear_status;
 	rsp->data = data;
 	rsp->data_len = data_len;
 	rsp->ccode = CC_OK;
