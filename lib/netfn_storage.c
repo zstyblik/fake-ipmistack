@@ -100,7 +100,7 @@ sel_add_entry(struct dummy_rq *req, struct dummy_rs *rsp)
 	if (data[2] < 0xE0) {
 		ipmi_sel_entries[record_id].timestamp = (uint32_t)time(NULL);
 	} else {
-		ipmi_sel_entries[record_id].timestamp = data[6] << 32;
+		ipmi_sel_entries[record_id].timestamp = data[6] << 24;
 		ipmi_sel_entries[record_id].timestamp = data[5] << 16;
 		ipmi_sel_entries[record_id].timestamp = data[4] << 8;
 		ipmi_sel_entries[record_id].timestamp = data[3];
