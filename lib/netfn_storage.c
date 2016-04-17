@@ -34,6 +34,34 @@
 static uint8_t bmc_time[4];
 static uint16_t sel_resrv_id = 0;
 
+# define SEL_OVERFLOW 0x80
+# define SEL_SUPPORT_DELETE 0x08
+# define SEL_SUPPORT_PARTIAL_ADD 0x04
+# define SEL_SUPPORT_RESERVE 0x02
+# define SEL_SUPPORT_GET_ALLOC 0x01
+
+struct ipmi_sel {
+	uint8_t version;
+	uint16_t entries;
+	uint32_t last_add_ts;
+	uint32_t last_del_ts;
+	uint8_t overflow;
+	uint8_t support_delete;
+	uint8_t support_partial_add;
+	uint8_t support_reserve;
+	uint8_t support_get_alloc;
+} ipmi_sel_status = {
+	.version = 0x51,
+	.entries = 0,
+	.last_add_ts = 0xFFFF,
+	.last_del_ts = 0xFFFF,
+	.overflow = 0x0,
+	.support_delete = SEL_SUPPORT_DELETE,
+	.support_partial_add = SEL_SUPPORT_PARTIAL_ADD,
+	.support_reserve = SEL_SUPPORT_RESERVE,
+	.support_get_alloc = SEL_SUPPORT_GET_ALLOC,
+};
+
 struct ipmi_sel_entry {
 	uint16_t record_id;
 	uint8_t is_free;
@@ -239,35 +267,49 @@ sel_get_info(struct dummy_rq *req, struct dummy_rs *rsp)
 {
 	uint8_t *data;
 	uint8_t data_len = 14 * sizeof(uint8_t);
+	uint16_t counter_entries = 0;
+	uint16_t counter_free = 0;
+	int i = 1;
 	data = malloc(data_len);
 	if (data == NULL) {
 		rsp->ccode = CC_UNSPEC;
 		perror("malloc fail");
 		return (-1);
 	}
+
+	for (i = 1; ipmi_sel_entries[i].record_id != 0xFFFF;
+			i++) {
+		if (ipmi_sel_entries[i].is_free == 0x1) {
+			counter_free = counter_free + 16;
+		} else {
+			counter_entries++;
+		}
+	}
 	/* SEL Version */
-	data[0] = 0x51;
+	data[0] = ipmi_sel_status.version;
 	/* Num of Entries - LS, MS Byte */
-	data[1] = 0;
-	data[2] = 0;
+	data[2] = counter_entries << 8;
+	data[1] = counter_entries;
 	/* Free space in bytes - LS, MS */
-	data[3] = 0x0;
-	data[4] = 0x1;
+	data[4] = counter_free << 8;
+	data[3] = counter_free;
 	/* Most recent addition tstamp */
-	data[5] = 0;
-	data[6] = 0;
-	data[7] = 0;
-	data[8] = 0;
+	data[8] = ipmi_sel_status.last_add_ts << 24;
+	data[7] = ipmi_sel_status.last_add_ts << 16;
+	data[6] = ipmi_sel_status.last_add_ts << 8;
+	data[5] = ipmi_sel_status.last_add_ts;
 	/* Most recent erase tstamp */
-	data[9] = 0;
-	data[10] = 0;
-	data[11] = 0;
-	data[12] = 0;
-	/* Op-support:
-	 * - Overflow[7] - & 0xFF for on
-	 * - Support[3:0] - delete, partial, reserve, get alloc
-	 */
-	data[13] = 0xF;
+	data[12] = ipmi_sel_status.last_del_ts << 24;
+	data[11] = ipmi_sel_status.last_del_ts << 16;
+	data[10] = ipmi_sel_status.last_del_ts << 8;
+	data[9] = ipmi_sel_status.last_del_ts;
+	/* Operation support */
+	data[13] = 0x0;
+	data[13] |= ipmi_sel_status.overflow;
+	data[13] |= ipmi_sel_status.support_delete;
+	data[13] |= ipmi_sel_status.support_partial_add;
+	data[13] |= ipmi_sel_status.support_reserve;
+	data[13] |= ipmi_sel_status.support_get_alloc;
 	rsp->data = data;
 	rsp->data_len = data_len;
 	rsp->ccode = CC_OK;
