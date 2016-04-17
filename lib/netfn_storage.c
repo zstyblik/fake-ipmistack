@@ -84,6 +84,9 @@ struct ipmi_sel_entry {
 	{ 0xFFFF, 0x0 }
 };
 
+
+void set_sel_overflow(uint8_t overflow);
+
 /* (31.6) Add SEL Entry */
 int
 sel_add_entry(struct dummy_rq *req, struct dummy_rs *rsp)
@@ -106,7 +109,7 @@ sel_add_entry(struct dummy_rq *req, struct dummy_rs *rsp)
 		}
 	}
 	if (found < 1) {
-		/* FIXME - probably check and set overflow here. */
+		set_sel_overflow(1);
 		rsp->ccode = CC_NO_SPACE;
 		return (-1);
 	}
@@ -125,7 +128,8 @@ sel_add_entry(struct dummy_rq *req, struct dummy_rs *rsp)
 	}
 	ipmi_sel_entries[record_id].is_free = 0x0;
 	ipmi_sel_entries[record_id].record_type = data[2];
-	if (data[2] < 0xE0) {
+
+	if (ipmi_sel_entries[record_id].record_type < 0xE0) {
 		ipmi_sel_entries[record_id].timestamp = (uint32_t)time(NULL);
 	} else {
 		ipmi_sel_entries[record_id].timestamp = data[6] << 24;
@@ -133,6 +137,8 @@ sel_add_entry(struct dummy_rq *req, struct dummy_rs *rsp)
 		ipmi_sel_entries[record_id].timestamp = data[4] << 8;
 		ipmi_sel_entries[record_id].timestamp = data[3];
 	}
+	ipmi_sel_status.last_add_ts = ipmi_sel_entries[record_id].timestamp;
+
 	ipmi_sel_entries[record_id].generator_id = data[8] << 8;
 	ipmi_sel_entries[record_id].generator_id |= data[7];
 	/* FIXME - EvM Rev conversion from IPMIv1.0 to IPMIv1.5+, p457 */
@@ -389,6 +395,22 @@ sel_set_time(struct dummy_rq *req, struct dummy_rs *rsp)
 	return 0;
 }
 
+
+/* set_sel_overflow - sets SEL overflow status.
+ *
+ * @overflow: value 0 means no overflow, any other value means overflow
+ */
+void
+set_sel_overflow(uint8_t overflow) {
+	switch (overflow) {
+	case 0:
+		ipmi_sel_status.overflow = 0x0;
+		break;
+	default:
+		ipmi_sel_status.overflow = SEL_OVERFLOW;
+		break;
+	}
+}
 int
 netfn_storage_main(struct dummy_rq *req, struct dummy_rs *rsp)
 {
