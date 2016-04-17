@@ -223,11 +223,11 @@ serve_client(int client_sockfd)
 		}
 
 		printf("---\nReceived:\n");
-		printf("msg.netfn: %x\n", req.msg.netfn);
-		printf("msg.lun: %x\n", req.msg.lun);
-		printf("msg.cmd: %x\n", req.msg.cmd);
-		printf("msg.target_cmd: %x\n", req.msg.target_cmd);
-		printf("msg.data_len: %x\n", req.msg.data_len);
+		printf("msg.netfn: 0x%x\n", req.msg.netfn);
+		printf("msg.lun: 0x%x\n", req.msg.lun);
+		printf("msg.cmd: 0x%x\n", req.msg.cmd);
+		printf("msg.target_cmd: 0x%x\n", req.msg.target_cmd);
+		printf("msg.data_len: %i\n", req.msg.data_len);
 
 		if (req.msg.netfn == 0x3f
 				&& req.msg.lun == 0
@@ -257,12 +257,12 @@ serve_client(int client_sockfd)
 
 		printf("---\n");
 		printf("Sending:\n");
-		printf("msg.netfn: %x\n", rsp.msg.netfn);
-		printf("msg.cmd: %x\n", rsp.msg.cmd);
-		printf("msg.seq: %x\n", rsp.msg.seq);
-		printf("msg.lun: %x\n", rsp.msg.lun);
-		printf("ccode: %x\n", rsp.ccode);
-		printf("data_len: %x\n", rsp.data_len);
+		printf("msg.netfn: 0x%x\n", rsp.msg.netfn);
+		printf("msg.cmd: 0x%x\n", rsp.msg.cmd);
+		printf("msg.seq: 0x%x\n", rsp.msg.seq);
+		printf("msg.lun: 0x%x\n", rsp.msg.lun);
+		printf("ccode: 0x%x\n", rsp.ccode);
+		printf("data_len: %i\n", rsp.data_len);
 		printf("---\n");
 		
 		if (data_write(client_sockfd, &rsp, sizeof(rsp)) != 0) {
