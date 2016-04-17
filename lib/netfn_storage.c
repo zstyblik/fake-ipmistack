@@ -130,10 +130,11 @@ sel_clear(struct dummy_rq *req, struct dummy_rs *rsp)
 {
 # define SEL_CLR_COMPLETE 1
 # define SEL_CLR_IN_PROGRESS 0
+	uint8_t action;
 	uint8_t *data;
 	uint8_t data_len = 1 * sizeof(uint8_t);
+	uint16_t record_id = 0;
 	uint16_t resrv_id_rcv = 0xF;
-	uint8_t action;
 	if (req->msg.data_len != 6) {
 		rsp->ccode = CC_DATA_LEN;
 		return (-1);
@@ -173,6 +174,13 @@ sel_clear(struct dummy_rq *req, struct dummy_rs *rsp)
 		rsp->ccode = CC_UNSPEC;
 		perror("malloc fail");
 		return (-1);
+	}
+
+	for (record_id = 1; ipmi_sel_entries[record_id].record_id != 0xFFFF;
+			record_id++) {
+		printf("[INFO] Clearing SEL Entry ID: %" PRIu16 "\n",
+				record_id);
+		ipmi_sel_entries[record_id].is_free = 0x1;
 	}
 
 	if (req->msg.data[5] == 0xAA) {
