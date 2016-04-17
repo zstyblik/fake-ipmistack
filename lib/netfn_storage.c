@@ -301,21 +301,21 @@ sel_get_info(struct dummy_rq *req, struct dummy_rs *rsp)
 	/* SEL Version */
 	data[0] = ipmi_sel_status.version;
 	/* Num of Entries - LS, MS Byte */
-	data[2] = counter_entries << 8;
 	data[1] = counter_entries;
+	data[2] = counter_entries >> 8;
 	/* Free space in bytes - LS, MS */
-	data[4] = counter_free << 8;
 	data[3] = counter_free;
-	/* Most recent addition tstamp */
-	data[8] = ipmi_sel_status.last_add_ts << 24;
-	data[7] = ipmi_sel_status.last_add_ts << 16;
-	data[6] = ipmi_sel_status.last_add_ts << 8;
+	data[4] = counter_free >> 8;
+	/* Most recent addition tstamp - LS, MS */
 	data[5] = ipmi_sel_status.last_add_ts;
-	/* Most recent erase tstamp */
-	data[12] = ipmi_sel_status.last_del_ts << 24;
-	data[11] = ipmi_sel_status.last_del_ts << 16;
-	data[10] = ipmi_sel_status.last_del_ts << 8;
+	data[6] = ipmi_sel_status.last_add_ts >> 8;
+	data[7] = ipmi_sel_status.last_add_ts >> 16;
+	data[8] = ipmi_sel_status.last_add_ts >> 24;
+	/* Most recent erase tstamp - LS, MS */
 	data[9] = ipmi_sel_status.last_del_ts;
+	data[10] = ipmi_sel_status.last_del_ts >> 8;
+	data[11] = ipmi_sel_status.last_del_ts >> 16;
+	data[12] = ipmi_sel_status.last_del_ts >> 24;
 	/* Operation support */
 	data[13] = 0x0;
 	data[13] |= ipmi_sel_status.overflow;
