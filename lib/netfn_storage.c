@@ -134,12 +134,6 @@ sel_clear(struct dummy_rq *req, struct dummy_rs *rsp)
 	uint8_t data_len = 1 * sizeof(uint8_t);
 	uint16_t resrv_id_rcv = 0xF;
 	uint8_t action;
-	data = malloc(data_len);
-	if (data == NULL) {
-		rsp->ccode = CC_UNSPEC;
-		perror("malloc fail");
-		return (-1);
-	}
 	if (req->msg.data_len != 6) {
 		rsp->ccode = CC_DATA_LEN;
 		return (-1);
@@ -174,14 +168,22 @@ sel_clear(struct dummy_rq *req, struct dummy_rs *rsp)
 		return (-1);
 	}
 
+	data = malloc(data_len);
+	if (data == NULL) {
+		rsp->ccode = CC_UNSPEC;
+		perror("malloc fail");
+		return (-1);
+	}
+
+	if (req->msg.data[5] == 0xAA) {
+		data[0] = SEL_CLR_IN_PROGRESS;
+	} else {
+		data[0] = SEL_CLR_COMPLETE;
+	}
+
 	rsp->data = data;
 	rsp->data_len = data_len;
 	rsp->ccode = CC_OK;
-	if (req->msg.data[5] == 0xAA) {
-		rsp->data[0] = SEL_CLR_IN_PROGRESS;
-	} else {
-		rsp->data[0] = SEL_CLR_COMPLETE;
-	}
 	return 0;
 }
 
@@ -191,14 +193,16 @@ sel_get_allocation_info(struct dummy_rq *req, struct dummy_rs *rsp)
 {
 	uint8_t *data;
 	uint8_t data_len = 9;
+
+	if (req->msg.data_len > 0) {
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	}
+
 	data = malloc(data_len);
 	if (data == NULL) {
 		rsp->ccode = CC_UNSPEC;
 		perror("malloc fail");
-		return (-1);
-	}
-	if (req->msg.data_len > 0) {
-		rsp->ccode = CC_DATA_LEN;
 		return (-1);
 	}
 	/* Number of possible allocs */
