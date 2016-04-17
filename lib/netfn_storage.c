@@ -34,6 +34,96 @@
 static uint8_t bmc_time[4];
 static uint16_t sel_resrv_id = 0;
 
+struct ipmi_sel_entry {
+	uint16_t record_id;
+	uint8_t is_free;
+	uint8_t record_type;
+	uint32_t timestamp;
+	uint16_t generator_id;
+	uint8_t event_msg_fmt_rev;
+	uint8_t sensor_type;
+	uint8_t sensor_number;
+	uint8_t event_dir_or_type;
+	uint8_t event_data1;
+	uint8_t event_data2;
+	uint8_t event_data3;
+} ipmi_sel_entries[] = {
+	{ 0x0, 0x0 },
+	{ 0x1, 0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 },
+	{ 0x2, 0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 },
+	{ 0x3, 0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 },
+	{ 0x4, 0x1, 0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 },
+	{ 0xFFFF, 0x0 }
+};
+
+/* (31.6) Add SEL Entry */
+int
+sel_add_entry(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	uint8_t *data;
+	uint8_t data_len = 2 * sizeof(uint8_t);
+	uint8_t found = 0;
+	uint16_t record_id = 0;
+	int i = 0;
+
+	if (req->msg.data_len != 16) {
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	}
+	for (record_id = 1; ipmi_sel_entries[record_id].record_id != 0xFFFF;
+			record_id++) {
+		if (ipmi_sel_entries[record_id].is_free == 0x1) {
+			found = 1;
+			break;
+		}
+	}
+	if (found < 1) {
+		/* FIXME - probably check and set overflow here. */
+		rsp->ccode = CC_NO_SPACE;
+		return (-1);
+	}
+
+	data = malloc(data_len);
+	if (data == NULL) {
+		rsp->ccode = CC_UNSPEC;
+		perror("malloc fail");
+		return (-1);
+	}
+
+	printf("[INFO] SEL Record ID: %" PRIu16 "\n", record_id);
+	printf("[INFO] Data from client:\n");
+	for (i = 0; i < 15; i++) {
+		printf("[INFO] data[%i] = %" PRIu8 "\n", i, data[i]);
+	}
+	ipmi_sel_entries[record_id].is_free = 0x0;
+	ipmi_sel_entries[record_id].record_type = data[2];
+	if (data[2] < 0xE0) {
+		ipmi_sel_entries[record_id].timestamp = (uint32_t)time(NULL);
+	} else {
+		ipmi_sel_entries[record_id].timestamp = data[6] << 32;
+		ipmi_sel_entries[record_id].timestamp = data[5] << 16;
+		ipmi_sel_entries[record_id].timestamp = data[4] << 8;
+		ipmi_sel_entries[record_id].timestamp = data[3];
+	}
+	ipmi_sel_entries[record_id].generator_id = data[8] << 8;
+	ipmi_sel_entries[record_id].generator_id |= data[7];
+	/* FIXME - EvM Rev conversion from IPMIv1.0 to IPMIv1.5+, p457 */
+	ipmi_sel_entries[record_id].event_msg_fmt_rev = data[9];
+	ipmi_sel_entries[record_id].sensor_type = data[10];
+	ipmi_sel_entries[record_id].sensor_number = data[11];
+	ipmi_sel_entries[record_id].event_dir_or_type = data[12];
+	ipmi_sel_entries[record_id].event_data1 = data[13];
+	ipmi_sel_entries[record_id].event_data2 = data[14];
+	ipmi_sel_entries[record_id].event_data3 = data[15];
+
+	data[0] = record_id >> 0;
+	data[1] = record_id >> 8;
+	rsp->data = data;
+	rsp->data_len = data_len;
+	rsp->ccode = CC_OK;
+	return 0;
+}
+
 /* (31.9) Clear SEL */
 int
 sel_clear(struct dummy_rq *req, struct dummy_rs *rsp)
@@ -256,6 +346,9 @@ netfn_storage_main(struct dummy_rq *req, struct dummy_rs *rsp)
 	rsp->data_len = 0;
 	rsp->data = NULL;
 	switch (req->msg.cmd) {
+	case SEL_ADD_ENTRY:
+		rc = sel_add_entry(req, rsp);
+		break;
 	case SEL_CLEAR:
 		rc = sel_clear(req, rsp);
 		break;
