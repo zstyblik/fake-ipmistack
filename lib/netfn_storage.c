@@ -236,6 +236,72 @@ sel_clear(struct dummy_rq *req, struct dummy_rs *rsp)
 	return 0;
 }
 
+/* (31.8) Delete SEL Entry */
+int
+sel_del_entry(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	uint8_t *data;
+	uint8_t data_len = 2;
+	uint16_t record_id = 0;
+	uint16_t resrv_id_rcv = 0xF;
+	int i = 0;
+
+	if (req->msg.data_len != 4) {
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	}
+
+	resrv_id_rcv = req->msg.data[1] << 8;
+	resrv_id_rcv |= req->msg.data[0];
+	printf("[INFO] SEL Reservation ID: %" PRIu16 "\n",
+			ipmi_sel_status.resrv_id);
+	printf("[INFO] SEL Reservation ID CLI: %" PRIu16 "\n",
+			resrv_id_rcv);
+	if (resrv_id_rcv != ipmi_sel_status.resrv_id) {
+		printf("[ERROR] SEL Reservation ID mismatch.\n");
+		rsp->ccode = CC_DATA_FIELD_INV;
+		return (-1);
+	}
+
+	record_id = rsp->msg.data[1] << 8;
+	record_id = rsp->msg.data[0];
+	if (record_id == 0x0000) {
+		/* TODO - find the first entry in SEL */
+		rsp->ccode = CC_UNSPEC;
+		return (-1);
+	} else if (record_id = 0xFFFF) {
+		/* TODO - find the last entry in SEL */
+		rsp->ccode = CC_UNSPEC;
+		return (-1);
+	}
+
+	rsp->ccode = CC_PARAM_OOR;
+	for (i = 1; ipmi_sel_entries[i].record_id != 0xFFFF; i++) {
+		if (ipmi_sel_entries[i].record_id == record_id) {
+			ipmi_sel_entries[i].is_empty = 0x1;
+			rsp->ccode = CC_OK;
+			break;
+		}
+	}
+
+	if (rsp->ccode != CC_OK) {
+		return (-1);
+	}
+
+	data = malloc(data_len);
+	if (data == NULL) {
+		rsp->ccode = CC_UNSPEC;
+		perror("malloc fail");
+		return (-1);
+	}
+
+	data[0] = record_id >> 0;
+	data[1] = record_id >> 8;
+	rsp->data = data;
+	rsp->data_len = data_len;
+	return 0;
+}
+
 /* (31.3) Get SEL Allocation Info */
 int
 sel_get_allocation_info(struct dummy_rq *req, struct dummy_rs *rsp)
@@ -434,6 +500,9 @@ netfn_storage_main(struct dummy_rq *req, struct dummy_rs *rsp)
 		break;
 	case SEL_CLEAR:
 		rc = sel_clear(req, rsp);
+		break;
+	case SEL_DEL_ENTRY:
+		rc = sel_del_entry(req, rsp);
 		break;
 	case SEL_GET_ALLOCATION_INFO:
 		rc = sel_get_allocation_info(req, rsp);
