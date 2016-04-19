@@ -263,14 +263,17 @@ sel_del_entry(struct dummy_rq *req, struct dummy_rs *rsp)
 		return (-1);
 	}
 
-	record_id = rsp->msg.data[1] << 8;
-	record_id = rsp->msg.data[0];
+	record_id = req->msg.data[3] << 8;
+	record_id |= req->msg.data[2];
+	printf("[INFO] SEL Record ID to delete: 0x%" PRIx16 "\n", record_id);
 	if (record_id == 0x0000) {
 		/* TODO - find the first entry in SEL */
+		printf("[ERROR] TODO - unimplemented.\n");
 		rsp->ccode = CC_UNSPEC;
 		return (-1);
-	} else if (record_id = 0xFFFF) {
+	} else if (record_id == 0xFFFF) {
 		/* TODO - find the last entry in SEL */
+		printf("[ERROR] TODO - unimplemented.\n");
 		rsp->ccode = CC_UNSPEC;
 		return (-1);
 	}
@@ -278,13 +281,14 @@ sel_del_entry(struct dummy_rq *req, struct dummy_rs *rsp)
 	rsp->ccode = CC_PARAM_OOR;
 	for (i = 1; ipmi_sel_entries[i].record_id != 0xFFFF; i++) {
 		if (ipmi_sel_entries[i].record_id == record_id) {
-			ipmi_sel_entries[i].is_empty = 0x1;
+			ipmi_sel_entries[i].is_free = 0x1;
 			rsp->ccode = CC_OK;
 			break;
 		}
 	}
 
 	if (rsp->ccode != CC_OK) {
+		printf("[ERROR] No SEL Record matches the Record ID.\n");
 		return (-1);
 	}
 
