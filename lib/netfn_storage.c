@@ -129,31 +129,31 @@ sel_add_entry(struct dummy_rq *req, struct dummy_rs *rsp)
 	printf("[INFO] SEL Record ID: %" PRIu16 "\n", record_id);
 	printf("[INFO] Data from client:\n");
 	for (i = 0; i < 15; i++) {
-		printf("[INFO] data[%i] = %" PRIu8 "\n", i, data[i]);
+		printf("[INFO] data[%i] = %" PRIu8 "\n", i, req->msg.data[i]);
 	}
 	ipmi_sel_entries[record_id].is_free = 0x0;
-	ipmi_sel_entries[record_id].record_type = data[2];
+	ipmi_sel_entries[record_id].record_type = req->msg.data[2];
 
 	if (ipmi_sel_entries[record_id].record_type < 0xE0) {
 		ipmi_sel_entries[record_id].timestamp = (uint32_t)time(NULL);
 	} else {
-		ipmi_sel_entries[record_id].timestamp = data[6] << 24;
-		ipmi_sel_entries[record_id].timestamp |= data[5] << 16;
-		ipmi_sel_entries[record_id].timestamp |= data[4] << 8;
-		ipmi_sel_entries[record_id].timestamp |= data[3];
+		ipmi_sel_entries[record_id].timestamp = req->msg.data[6] << 24;
+		ipmi_sel_entries[record_id].timestamp |= req->msg.data[5] << 16;
+		ipmi_sel_entries[record_id].timestamp |= req->msg.data[4] << 8;
+		ipmi_sel_entries[record_id].timestamp |= req->msg.data[3];
 	}
 	ipmi_sel_status.last_add_ts = ipmi_sel_entries[record_id].timestamp;
 
-	ipmi_sel_entries[record_id].generator_id = data[8] << 8;
-	ipmi_sel_entries[record_id].generator_id |= data[7];
+	ipmi_sel_entries[record_id].generator_id = req->msg.data[8] << 8;
+	ipmi_sel_entries[record_id].generator_id |= req->msg.data[7];
 	/* FIXME - EvM Rev conversion from IPMIv1.0 to IPMIv1.5+, p457 */
-	ipmi_sel_entries[record_id].event_msg_fmt_rev = data[9];
-	ipmi_sel_entries[record_id].sensor_type = data[10];
-	ipmi_sel_entries[record_id].sensor_number = data[11];
-	ipmi_sel_entries[record_id].event_dir_or_type = data[12];
-	ipmi_sel_entries[record_id].event_data1 = data[13];
-	ipmi_sel_entries[record_id].event_data2 = data[14];
-	ipmi_sel_entries[record_id].event_data3 = data[15];
+	ipmi_sel_entries[record_id].event_msg_fmt_rev = req->msg.data[9];
+	ipmi_sel_entries[record_id].sensor_type = req->msg.data[10];
+	ipmi_sel_entries[record_id].sensor_number = req->msg.data[11];
+	ipmi_sel_entries[record_id].event_dir_or_type = req->msg.data[12];
+	ipmi_sel_entries[record_id].event_data1 = req->msg.data[13];
+	ipmi_sel_entries[record_id].event_data2 = req->msg.data[14];
+	ipmi_sel_entries[record_id].event_data3 = req->msg.data[15];
 
 	data[0] = record_id >> 0;
 	data[1] = record_id >> 8;
@@ -344,6 +344,107 @@ sel_get_allocation_info(struct dummy_rq *req, struct dummy_rs *rsp)
 	return 0;
 }
 
+/* (31.5) Get SEL Entry */
+int
+sel_get_entry(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	uint8_t *bytes_to_read;
+	uint8_t *data;
+	uint8_t *offset;
+	uint8_t data_len = 18 * sizeof(uint8_t);
+	uint8_t found = 0;
+	uint16_t next_record_id = 0;
+	uint16_t record_id = 0;
+	uint16_t resrv_id_rcv = 0;
+	int i = 0;
+
+	if (req->msg.data_len != 6) {
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	}
+
+	resrv_id_rcv = req->msg.data[1] << 8;
+	resrv_id_rcv |= req->msg.data[0];
+	printf("[INFO] SEL Reservation ID RCV: %" PRIu16 "\n",
+			resrv_id_rcv);
+	printf("[INFO] SEL Reservation ID: %" PRIu16 "\n",
+			ipmi_sel_status.resrv_id);
+	offset = &req->msg.data[4];
+	if (*offset != 0 && resrv_id_rcv != ipmi_sel_status.resrv_id) {
+		rsp->ccode = CC_DATA_FIELD_INV;
+		return (-1);
+	}
+
+	bytes_to_read = &req->msg.data[5];
+	if (*bytes_to_read > 16 && *bytes_to_read != 0xFF || *offset > 15) {
+		printf("[ERROR] Bytes or Offset are OOR.\n");
+		rsp->ccode = CC_PARAM_OOR;
+		return (-1);
+	}
+
+	record_id = req->msg.data[3] << 8;
+	record_id |= req->msg.data[2];
+	printf("[INFO] SEL Record ID: %" PRIu16 "\n", record_id);
+	for (i = 0; ipmi_sel_entries[i].record_id != 0xFFFF; i++) {
+		if (ipmi_sel_entries[i].record_id == record_id) {
+			found = 1;
+			next_record_id = ipmi_sel_entries[++i].record_id;
+			break;
+		}
+	}
+
+	if (found == 0) {
+		printf("[ERROR] SEL Record not found.\n");
+		rsp->ccode = CC_PARAM_OOR;
+		return (-1);
+	}
+
+	/* No support for partial reads. */
+	if (*bytes_to_read < 16 && *bytes_to_read != 0xFF
+			|| *offset != 0) {
+		printf("[ERROR] Partial read aren't supported.\n");
+		rsp->ccode = CC_PARAM_OOR;
+		return (-1);
+	}
+
+	data = malloc(data_len);
+	if (data == NULL) {
+		rsp->ccode = CC_UNSPEC;
+		perror("malloc fail");
+		return (-1);
+	}
+	data[0] = next_record_id >> 0;
+	data[1] = next_record_id >> 8;
+	/* Record ID */
+	data[2] = record_id >> 0;
+	data[3] = record_id >> 8;
+	data[4] = ipmi_sel_entries[record_id].record_type;
+	/* Timestamp */
+	data[5] = ipmi_sel_entries[record_id].timestamp >> 0;
+	data[6] = ipmi_sel_entries[record_id].timestamp >> 8;
+	data[7] = ipmi_sel_entries[record_id].timestamp >> 16;
+	data[8] = ipmi_sel_entries[record_id].timestamp >> 24;
+	/* Generator ID */
+	data[9] = ipmi_sel_entries[record_id].generator_id >> 0;
+	data[10] = ipmi_sel_entries[record_id].generator_id >> 8;
+	data[11] = ipmi_sel_entries[record_id].event_msg_fmt_rev;
+	data[12] = ipmi_sel_entries[record_id].sensor_type;
+	data[13] = ipmi_sel_entries[record_id].sensor_number;
+	data[14] = ipmi_sel_entries[record_id].event_dir_or_type;
+	data[15] = ipmi_sel_entries[record_id].event_data1;
+	data[16] = ipmi_sel_entries[record_id].event_data2;
+	data[17] = ipmi_sel_entries[record_id].event_data3;
+	printf("[INFO] Data sent to client:\n");
+	for (i = 0; i < data_len; i++) {
+		printf("  data[%i] = %" PRIu8 "\n", i, data[i]);
+	}
+
+	rsp->data_len = data_len;
+	rsp->data = data;
+	rsp->ccode = CC_OK;
+	return 0;
+}
+
 /* (31.2) Get SEL Info */
 int
 sel_get_info(struct dummy_rq *req, struct dummy_rs *rsp)
@@ -510,6 +611,9 @@ netfn_storage_main(struct dummy_rq *req, struct dummy_rs *rsp)
 		break;
 	case SEL_GET_ALLOCATION_INFO:
 		rc = sel_get_allocation_info(req, rsp);
+		break;
+	case SEL_GET_ENTRY:
+		rc = sel_get_entry(req, rsp);
 		break;
 	case SEL_GET_INFO:
 		rc = sel_get_info(req, rsp);
