@@ -282,6 +282,8 @@ sel_del_entry(struct dummy_rq *req, struct dummy_rs *rsp)
 	for (i = 1; ipmi_sel_entries[i].record_id != 0xFFFF; i++) {
 		if (ipmi_sel_entries[i].record_id == record_id) {
 			ipmi_sel_entries[i].is_free = 0x1;
+			ipmi_sel_status.last_del_ts = (uint32_t)time(NULL);
+			set_sel_overflow(0);
 			rsp->ccode = CC_OK;
 			break;
 		}
