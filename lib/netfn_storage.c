@@ -202,24 +202,24 @@ sel_clear(struct dummy_rq *req, struct dummy_rs *rsp)
 	}
 
 	switch (req->msg.data[5]) {
-		case 0xAA:
-			for (record_id = 1;
-					ipmi_sel_entries[record_id].record_id != 0xFFFF;
-					record_id++) {
-				printf("[INFO] Clearing SEL Entry ID: %" PRIu16 "\n",
-						record_id);
-				ipmi_sel_entries[record_id].is_free = 0x1;
-			}
-			ipmi_sel_status.clear_status = SEL_CLR_IN_PROGRESS;
-			set_sel_overflow(0);
-			break;
-		case 0x00:
-			ipmi_sel_status.clear_status = SEL_CLR_COMPLETE;
-			break;
-		default:
-			printf("[ERROR] Expected 0x00 or 0xAA.\n");
-			rsp->ccode = CC_DATA_FIELD_INV;
-			return (-1);
+	case 0xAA:
+		for (record_id = 1;
+				ipmi_sel_entries[record_id].record_id != 0xFFFF;
+				record_id++) {
+			printf("[INFO] Clearing SEL Entry ID: %" PRIu16 "\n",
+					record_id);
+			ipmi_sel_entries[record_id].is_free = 0x1;
+		}
+		ipmi_sel_status.clear_status = SEL_CLR_IN_PROGRESS;
+		set_sel_overflow(0);
+		break;
+	case 0x00:
+		ipmi_sel_status.clear_status = SEL_CLR_COMPLETE;
+		break;
+	default:
+		printf("[ERROR] Expected 0x00 or 0xAA.\n");
+		rsp->ccode = CC_DATA_FIELD_INV;
+		return (-1);
 	}
 
 	data = malloc(data_len);
