@@ -31,8 +31,6 @@
 #include <stdlib.h>
 #include <time.h>
 
-static uint8_t bmc_time[4];
-
 # define SEL_CLR_COMPLETE 1
 # define SEL_CLR_IN_PROGRESS 0
 # define SEL_OVERFLOW 0x80
@@ -53,6 +51,7 @@ struct ipmi_sel {
 	uint8_t support_get_alloc;
 	uint8_t clear_status;
 	uint16_t resrv_id;
+	uint8_t bmc_time[4];
 } ipmi_sel_status = {
 	.version = 0x51,
 	.entries = 0,
@@ -65,6 +64,7 @@ struct ipmi_sel {
 	.support_get_alloc = SEL_SUPPORT_GET_ALLOC,
 	.clear_status = SEL_CLR_COMPLETE,
 	.resrv_id = 0,
+	.bmc_time = {0, 0, 0, 0},
 };
 
 struct ipmi_sel_entry {
@@ -537,10 +537,10 @@ sel_get_time(struct dummy_rq *req, struct dummy_rs *rsp)
 		perror("malloc fail");
 		return (-1);
 	}
-	data[0] = bmc_time[0];
-	data[1] = bmc_time[1];
-	data[2] = bmc_time[2];
-	data[3] = bmc_time[3];
+	data[0] = ipmi_sel_status.bmc_time[0];
+	data[1] = ipmi_sel_status.bmc_time[1];
+	data[2] = ipmi_sel_status.bmc_time[2];
+	data[3] = ipmi_sel_status.bmc_time[3];
 	rsp->data = data;
 	rsp->data_len = data_len;
 	rsp->ccode = CC_OK;
@@ -564,13 +564,13 @@ sel_set_time(struct dummy_rq *req, struct dummy_rs *rsp)
 	printf("[1]: '%i'\n", req->msg.data[1]);
 	printf("[2]: '%i'\n", req->msg.data[2]);
 	printf("[3]: '%i'\n", req->msg.data[3]);
-	bmc_time[0] = req->msg.data[0];
-	bmc_time[1] = req->msg.data[1];
-	bmc_time[2] = req->msg.data[2];
-	bmc_time[3] = req->msg.data[3];
+	ipmi_sel_status.bmc_time[0] = req->msg.data[0];
+	ipmi_sel_status.bmc_time[1] = req->msg.data[1];
+	ipmi_sel_status.bmc_time[2] = req->msg.data[2];
+	ipmi_sel_status.bmc_time[3] = req->msg.data[3];
 
 	strftime(tbuf, sizeof(tbuf), "%m/%d/%Y %H:%M:%S",
-			gmtime((time_t *)bmc_time));
+			gmtime((time_t *)ipmi_sel_status.bmc_time));
 	printf("Time received from client: %s\n", tbuf);
 	return 0;
 }
