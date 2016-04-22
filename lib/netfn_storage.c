@@ -314,6 +314,10 @@ sel_get_allocation_info(struct dummy_rq *req, struct dummy_rs *rsp)
 {
 	uint8_t *data;
 	uint8_t data_len = 9;
+	uint16_t alloc_size = 16;
+	uint16_t entry_count = 0;
+	uint16_t free_count = 0;
+	int i = 0;
 
 	if (req->msg.data_len > 0) {
 		rsp->ccode = CC_DATA_LEN;
@@ -326,20 +330,30 @@ sel_get_allocation_info(struct dummy_rq *req, struct dummy_rs *rsp)
 		perror("malloc fail");
 		return (-1);
 	}
+
+	for (i = 1; ipmi_sel_entries[i].record_id != 0xFFFF; i++) {
+		entry_count++;
+		if (ipmi_sel_entries[i].is_free != 0x00) {
+			free_count++;
+		}
+	}
+
+	entry_count = entry_count * alloc_size;
+	free_count = free_count * alloc_size;
 	/* Number of possible allocs */
-	data[0] = 0;
-	data[1] = 0;
+	data[0] = entry_count >> 0;
+	data[1] = entry_count >> 8;
 	/* Alloc unit size in bytes */
-	data[2] = 0;
-	data[3] = 0;
+	data[2] = alloc_size >> 0;
+	data[3] = alloc_size >> 8;
 	/* Number of free allocs */
-	data[4] = 0;
-	data[5] = 0;
+	data[4] = free_count >> 0;
+	data[5] = free_count >> 8;
 	/* Largest free block in alloc units */
 	data[6] = 0;
 	data[7] = 0;
 	/* Max record size in alloc units */
-	data[8] = 0;
+	data[8] = alloc_size;
 	rsp->data = data;
 	rsp->data_len = data_len;
 	rsp->ccode = CC_OK;
