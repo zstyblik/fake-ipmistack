@@ -400,8 +400,21 @@ sel_get_entry(struct dummy_rq *req, struct dummy_rs *rsp)
 
 	record_id = req->msg.data[3] << 8;
 	record_id |= req->msg.data[2];
+
+	if (record_id == 0x0000) {
+		/* TODO - find the first entry in SEL */
+		printf("[ERROR] TODO - unimplemented.\n");
+		rsp->ccode = CC_UNSPEC;
+		return (-1);
+	} else if (record_id == 0xFFFF) {
+		/* TODO - find the last entry in SEL */
+		printf("[ERROR] TODO - unimplemented.\n");
+		rsp->ccode = CC_UNSPEC;
+		return (-1);
+	}
+
 	printf("[INFO] SEL Record ID: %" PRIu16 "\n", record_id);
-	for (i = 0; ipmi_sel_entries[i].record_id != 0xFFFF; i++) {
+	for (i = 1; ipmi_sel_entries[i].record_id != 0xFFFF; i++) {
 		if (ipmi_sel_entries[i].record_id == record_id) {
 			found = 1;
 			next_record_id = ipmi_sel_entries[++i].record_id;
