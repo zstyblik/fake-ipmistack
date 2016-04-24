@@ -92,6 +92,20 @@ struct ipmi_sel_entry {
 
 void set_sel_overflow(uint8_t overflow);
 
+uint16_t
+_get_first_sel_entry()
+{
+	return 1;
+}
+
+uint16_t
+_get_last_sel_entry()
+{
+	int i = 0;
+	for (i = 0; ipmi_sel_entries[i].record_id != 0xFFFF; i++);
+	return --i;
+}
+
 /* (31.6) Add SEL Entry */
 int
 sel_add_entry(struct dummy_rq *req, struct dummy_rs *rsp)
@@ -267,15 +281,11 @@ sel_del_entry(struct dummy_rq *req, struct dummy_rs *rsp)
 	record_id |= req->msg.data[2];
 	printf("[INFO] SEL Record ID to delete: 0x%" PRIx16 "\n", record_id);
 	if (record_id == 0x0000) {
-		/* TODO - find the first entry in SEL */
-		printf("[ERROR] TODO - unimplemented.\n");
-		rsp->ccode = CC_UNSPEC;
-		return (-1);
+		record_id = _get_first_sel_entry();
+		printf("[INFO] New SEL Record ID: 0x%" PRIx16 "\n", record_id);
 	} else if (record_id == 0xFFFF) {
-		/* TODO - find the last entry in SEL */
-		printf("[ERROR] TODO - unimplemented.\n");
-		rsp->ccode = CC_UNSPEC;
-		return (-1);
+		record_id = _get_last_sel_entry();
+		printf("[INFO] New SEL Record ID: 0x%" PRIx16 "\n", record_id);
 	}
 
 	rsp->ccode = CC_PARAM_OOR;
@@ -402,15 +412,11 @@ sel_get_entry(struct dummy_rq *req, struct dummy_rs *rsp)
 	record_id |= req->msg.data[2];
 
 	if (record_id == 0x0000) {
-		/* TODO - find the first entry in SEL */
-		printf("[ERROR] TODO - unimplemented.\n");
-		rsp->ccode = CC_UNSPEC;
-		return (-1);
+		record_id = _get_first_sel_entry();
+		printf("[INFO] New SEL Record ID: 0x%" PRIx16 "\n", record_id);
 	} else if (record_id == 0xFFFF) {
-		/* TODO - find the last entry in SEL */
-		printf("[ERROR] TODO - unimplemented.\n");
-		rsp->ccode = CC_UNSPEC;
-		return (-1);
+		record_id = _get_last_sel_entry();
+		printf("[INFO] New SEL Record ID: 0x%" PRIx16 "\n", record_id);
 	}
 
 	printf("[INFO] SEL Record ID: %" PRIu16 "\n", record_id);
