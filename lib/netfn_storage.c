@@ -67,9 +67,8 @@ struct ipmi_sel {
 	.bmc_time = {0, 0, 0, 0},
 };
 
-struct ipmi_sel_entry {
+struct ipmi_sel_record {
 	uint16_t record_id;
-	uint8_t is_free;
 	uint8_t record_type;
 	uint32_t timestamp;
 	uint16_t generator_id;
@@ -80,12 +79,19 @@ struct ipmi_sel_entry {
 	uint8_t event_data1;
 	uint8_t event_data2;
 	uint8_t event_data3;
+};
+
+struct ipmi_sel_entry {
+	uint16_t record_id;
+	uint8_t is_free;
+	uint8_t record_len;
+	uint8_t *record_data;
 } ipmi_sel_entries[] = {
-	{ 0x0, 0x0 },
-	{ 0x1, 0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 },
-	{ 0x2, 0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 },
-	{ 0x3, 0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 },
-	{ 0x4, 0x1, 0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 },
+	{ 0x0, 0x0, 0x0, NULL },
+	{ 0x1, 0x1, 0x0, NULL },
+	{ 0x2, 0x1, 0x0, NULL },
+	{ 0x3, 0x1, 0x0, NULL },
+	{ 0x4, 0x1, 0x0, NULL },
 	{ 0xFFFF, 0x0 }
 };
 
@@ -120,6 +126,7 @@ sel_add_entry(struct dummy_rq *req, struct dummy_rs *rsp)
 		rsp->ccode = CC_DATA_LEN;
 		return (-1);
 	}
+
 	for (record_id = 1; ipmi_sel_entries[record_id].record_id != 0xFFFF;
 			record_id++) {
 		if (ipmi_sel_entries[record_id].is_free == 0x1) {
@@ -133,41 +140,39 @@ sel_add_entry(struct dummy_rq *req, struct dummy_rs *rsp)
 		return (-1);
 	}
 
-	data = malloc(data_len);
-	if (data == NULL) {
-		rsp->ccode = CC_UNSPEC;
-		perror("malloc fail");
-		return (-1);
-	}
-
 	printf("[INFO] SEL Record ID: %" PRIu16 "\n", record_id);
 	printf("[INFO] Data from client:\n");
 	for (i = 0; i < 15; i++) {
 		printf("[INFO] data[%i] = %" PRIu8 "\n", i, req->msg.data[i]);
 	}
-	ipmi_sel_entries[record_id].is_free = 0x0;
-	ipmi_sel_entries[record_id].record_type = req->msg.data[2];
 
-	if (ipmi_sel_entries[record_id].record_type < 0xE0) {
-		ipmi_sel_entries[record_id].timestamp = (uint32_t)time(NULL);
-	} else {
-		ipmi_sel_entries[record_id].timestamp = req->msg.data[6] << 24;
-		ipmi_sel_entries[record_id].timestamp |= req->msg.data[5] << 16;
-		ipmi_sel_entries[record_id].timestamp |= req->msg.data[4] << 8;
-		ipmi_sel_entries[record_id].timestamp |= req->msg.data[3];
+	data = malloc(data_len);
+	if (data == NULL) {
+		perror("malloc fail");
+		rsp->ccode = CC_UNSPEC;
+		return (-1);
 	}
-	ipmi_sel_status.last_add_ts = ipmi_sel_entries[record_id].timestamp;
 
-	ipmi_sel_entries[record_id].generator_id = req->msg.data[8] << 8;
-	ipmi_sel_entries[record_id].generator_id |= req->msg.data[7];
-	/* FIXME - EvM Rev conversion from IPMIv1.0 to IPMIv1.5+, p457 */
-	ipmi_sel_entries[record_id].event_msg_fmt_rev = req->msg.data[9];
-	ipmi_sel_entries[record_id].sensor_type = req->msg.data[10];
-	ipmi_sel_entries[record_id].sensor_number = req->msg.data[11];
-	ipmi_sel_entries[record_id].event_dir_or_type = req->msg.data[12];
-	ipmi_sel_entries[record_id].event_data1 = req->msg.data[13];
-	ipmi_sel_entries[record_id].event_data2 = req->msg.data[14];
-	ipmi_sel_entries[record_id].event_data3 = req->msg.data[15];
+	ipmi_sel_entries[record_id].record_data = malloc(req->msg.data_len * sizeof(uint8_t));
+	if (ipmi_sel_entries[record_id].record_data == NULL) {
+		perror("malloc fail");
+		rsp->ccode = CC_UNSPEC;
+		free(data);
+		data = NULL;
+		return (-1);
+	}
+
+	ipmi_sel_entries[record_id].is_free = 0x0;
+	ipmi_sel_entries[record_id].record_len = req->msg.data_len;
+	memcpy(ipmi_sel_entries[record_id].record_data, &req->msg.data[0], req->msg.data_len);
+
+	ipmi_sel_entries[record_id].record_data[0] = record_id >> 0;
+	ipmi_sel_entries[record_id].record_data[1] = record_id >> 8;
+	if (req->msg.data[2] < 0xE0) {
+		ipmi_sel_entries[record_id].record_data[3] = (uint32_t)time(NULL);
+	}
+	ipmi_sel_status.last_add_ts = (uint32_t)ipmi_sel_entries[record_id].record_data[3];
+	/* FIXME - EvM Rev conversion from IPMIv1.0 to IPMIv1.5+, p457 in data[9] */
 
 	data[0] = record_id >> 0;
 	data[1] = record_id >> 8;
@@ -223,6 +228,9 @@ sel_clear(struct dummy_rq *req, struct dummy_rs *rsp)
 			printf("[INFO] Clearing SEL Entry ID: %" PRIu16 "\n",
 					record_id);
 			ipmi_sel_entries[record_id].is_free = 0x1;
+			free(ipmi_sel_entries[record_id].record_data);
+			ipmi_sel_entries[record_id].record_data = NULL;
+			ipmi_sel_entries[record_id].record_len = 0;
 		}
 		ipmi_sel_status.clear_status = SEL_CLR_IN_PROGRESS;
 		set_sel_overflow(0);
@@ -292,6 +300,9 @@ sel_del_entry(struct dummy_rq *req, struct dummy_rs *rsp)
 	for (i = 1; ipmi_sel_entries[i].record_id != 0xFFFF; i++) {
 		if (ipmi_sel_entries[i].record_id == record_id) {
 			ipmi_sel_entries[i].is_free = 0x1;
+			free(ipmi_sel_entries[i].record_data);
+			ipmi_sel_entries[i].record_data = NULL;
+			ipmi_sel_entries[i].record_len = 0;
 			ipmi_sel_status.last_del_ts = (uint32_t)time(NULL);
 			set_sel_overflow(0);
 			rsp->ccode = CC_OK;
@@ -448,27 +459,11 @@ sel_get_entry(struct dummy_rq *req, struct dummy_rs *rsp)
 		perror("malloc fail");
 		return (-1);
 	}
+
 	data[0] = next_record_id >> 0;
 	data[1] = next_record_id >> 8;
-	/* Record ID */
-	data[2] = record_id >> 0;
-	data[3] = record_id >> 8;
-	data[4] = ipmi_sel_entries[record_id].record_type;
-	/* Timestamp */
-	data[5] = ipmi_sel_entries[record_id].timestamp >> 0;
-	data[6] = ipmi_sel_entries[record_id].timestamp >> 8;
-	data[7] = ipmi_sel_entries[record_id].timestamp >> 16;
-	data[8] = ipmi_sel_entries[record_id].timestamp >> 24;
-	/* Generator ID */
-	data[9] = ipmi_sel_entries[record_id].generator_id >> 0;
-	data[10] = ipmi_sel_entries[record_id].generator_id >> 8;
-	data[11] = ipmi_sel_entries[record_id].event_msg_fmt_rev;
-	data[12] = ipmi_sel_entries[record_id].sensor_type;
-	data[13] = ipmi_sel_entries[record_id].sensor_number;
-	data[14] = ipmi_sel_entries[record_id].event_dir_or_type;
-	data[15] = ipmi_sel_entries[record_id].event_data1;
-	data[16] = ipmi_sel_entries[record_id].event_data2;
-	data[17] = ipmi_sel_entries[record_id].event_data3;
+	memcpy(&data[2], ipmi_sel_entries[record_id].record_data,
+			ipmi_sel_entries[record_id].record_len);
 	printf("[INFO] Data sent to client:\n");
 	for (i = 0; i < data_len; i++) {
 		printf("  data[%i] = %" PRIu8 "\n", i, data[i]);
