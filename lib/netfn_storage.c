@@ -385,11 +385,11 @@ sel_get_allocation_info(struct dummy_rq *req, struct dummy_rs *rsp)
 int
 sel_get_entry(struct dummy_rq *req, struct dummy_rs *rsp)
 {
-	uint8_t *bytes_to_read;
 	uint8_t *data;
-	uint8_t *offset;
-	uint8_t data_len = 18 * sizeof(uint8_t);
+	uint8_t bytes_to_read = 0;
+	uint8_t data_len = 2 * sizeof(uint8_t);
 	uint8_t found = 0;
+	uint8_t offset = 0;
 	uint16_t next_record_id = 0;
 	uint16_t record_id = 0;
 	uint16_t resrv_id_rcv = 0;
@@ -406,16 +406,10 @@ sel_get_entry(struct dummy_rq *req, struct dummy_rs *rsp)
 			resrv_id_rcv);
 	printf("[INFO] SEL Reservation ID: %" PRIu16 "\n",
 			ipmi_sel_status.resrv_id);
-	offset = &req->msg.data[4];
-	if (*offset != 0 && resrv_id_rcv != ipmi_sel_status.resrv_id) {
+	offset = req->msg.data[4];
+	bytes_to_read = req->msg.data[5];
+	if (offset != 0 && resrv_id_rcv != ipmi_sel_status.resrv_id) {
 		rsp->ccode = CC_DATA_FIELD_INV;
-		return (-1);
-	}
-
-	bytes_to_read = &req->msg.data[5];
-	if (*bytes_to_read > 16 && *bytes_to_read != 0xFF || *offset > 15) {
-		printf("[ERROR] Bytes or Offset are OOR.\n");
-		rsp->ccode = CC_PARAM_OOR;
 		return (-1);
 	}
 
@@ -445,14 +439,28 @@ sel_get_entry(struct dummy_rq *req, struct dummy_rs *rsp)
 		return (-1);
 	}
 
-	/* No support for partial reads. */
-	if (*bytes_to_read < 16 && *bytes_to_read != 0xFF
-			|| *offset != 0) {
-		printf("[ERROR] Partial read aren't supported.\n");
+	printf("[INFO] Offset: 0x%" PRIx8 "\n", offset);
+	printf("[INFO] Bytes to read: 0x%" PRIx8 "\n", bytes_to_read);
+	printf("[INFO] Record Len: %" PRIu8 "\n",
+			ipmi_sel_entries[record_id].record_len);
+	if ((bytes_to_read > 16 && bytes_to_read != 0xFF) || offset > 16) {
+		printf("[ERROR] Bytes or Offset are OOR.\n");
 		rsp->ccode = CC_PARAM_OOR;
 		return (-1);
 	}
 
+	if (bytes_to_read == 0xFF) {
+		bytes_to_read = ipmi_sel_entries[record_id].record_len;
+	}
+
+	if (bytes_to_read > ipmi_sel_entries[record_id].record_len
+		|| (bytes_to_read + offset) > ipmi_sel_entries[record_id].record_len) {
+		printf("[ERROR] Bytes and Offset > Record Len.\n");
+		rsp->ccode = CC_PARAM_OOR;
+		return (-1);
+	}
+
+	data_len += bytes_to_read * sizeof(uint8_t);
 	data = malloc(data_len);
 	if (data == NULL) {
 		rsp->ccode = CC_UNSPEC;
@@ -463,7 +471,7 @@ sel_get_entry(struct dummy_rq *req, struct dummy_rs *rsp)
 	data[0] = next_record_id >> 0;
 	data[1] = next_record_id >> 8;
 	memcpy(&data[2], ipmi_sel_entries[record_id].record_data,
-			ipmi_sel_entries[record_id].record_len);
+			bytes_to_read);
 	printf("[INFO] Data sent to client:\n");
 	for (i = 0; i < data_len; i++) {
 		printf("  data[%i] = %" PRIu8 "\n", i, data[i]);
