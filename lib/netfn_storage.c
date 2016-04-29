@@ -433,7 +433,7 @@ sel_get_entry(struct dummy_rq *req, struct dummy_rs *rsp)
 		}
 	}
 
-	if (found == 0) {
+	if (found < 1) {
 		printf("[ERROR] SEL Record not found.\n");
 		rsp->ccode = CC_PARAM_OOR;
 		return (-1);
@@ -587,6 +587,99 @@ sel_get_time(struct dummy_rq *req, struct dummy_rs *rsp)
 	return 0;
 }
 
+/* (31.7) Partial Add SEL Entry */
+int
+sel_partial_add_entry(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	uint8_t *data;
+	uint8_t *record_data;
+	uint8_t data_len = 2 * sizeof(uint8_t);
+	uint8_t found = 0;
+	uint8_t offset;
+	uint8_t record_len = 16 * sizeof(uint8_t);
+	uint16_t resrv_id_rcv = 0xF;
+	uint16_t record_id;
+	int i = 0;
+	/* SEL Entry length is 16 bytes. */
+	if (req->msg.data_len < 7 || req->msg.data_len > 22) {
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	}
+
+	resrv_id_rcv = req->msg.data[1] << 8;
+	resrv_id_rcv |= req->msg.data[0];
+	record_id = req->msg.data[3] << 8;
+	record_id |= req->msg.data[2];
+	offset = req->msg.data[4];
+	printf("[INFO] SEL Reservation ID: %" PRIu16 "\n",
+			ipmi_sel_status.resrv_id);
+	printf("[INFO] SEL Reservation ID CLI: %" PRIu16 "\n",
+			resrv_id_rcv);
+	printf("[INFO] SEL Record ID: %" PRIu16 "\n", record_id);
+	printf("[INFO] SEL Record Offset: %" PRIu16 "\n", offset);
+	if (resrv_id_rcv != ipmi_sel_status.resrv_id
+		|| (record_id == 0x0 && offset != 0x0)
+		|| (req->msg.data[5] != 0x0 && req->msg.data[5] != 0x1)) {
+		rsp->ccode = CC_DATA_FIELD_INV;
+		return (-1);
+	}
+
+	found = 0;
+	for (i = 1; ipmi_sel_entries[i].record_id != 0xFFFF; i++) {
+		if (ipmi_sel_entries[i].is_free == 0x1) {
+			if (record_id == 0x0) {
+				record_id = ipmi_sel_entries[i].record_id;
+				found = 1;
+				break;
+			} else if (ipmi_sel_entries[i].record_id == record_id) {
+				found = 1;
+				break;
+			}
+		}
+	}
+	if (found < 1) {
+		rsp->ccode = CC_DATA_FIELD_INV;
+		return (-1);
+	}
+	/* out-of-bounds write */
+	if (offset + (req->msg.data_len - 6) > 16) {
+		rsp->ccode = 0x80;
+		return (-1);
+	}
+
+	if (ipmi_sel_entries[i].record_data == NULL) {
+		record_data = malloc(record_len);
+		if (record_data == NULL) {
+			perror("malloc fail");
+			rsp->ccode = CC_UNSPEC;
+			return (-1);
+		}
+		ipmi_sel_entries[i].record_data = record_data;
+		ipmi_sel_entries[i].record_len = record_len;
+	} else {
+		record_data = ipmi_sel_entries[i].record_data;
+	}
+
+	memcpy(&record_data[offset], &req->msg.data[7],
+			(req->msg.data_len - 6));
+
+	/* Finalize/close SEL Entry */
+	if (req->msg.data[5] == 0x1) {
+		if (record_data[2] < 0xE0) {
+			record_data[3] = (uint32_t)time(NULL);
+		}
+		ipmi_sel_entries[i].is_free = 0x0;
+		ipmi_sel_status.last_add_ts = (uint32_t)ipmi_sel_entries[record_id].record_data[3];
+	}
+
+	data[0] = record_id >> 0;
+	data[1] = record_id >> 8;
+	rsp->data = data;
+	rsp->data_len = data_len;
+	rsp->ccode = CC_OK;
+	return 0;
+}
+
 /* (31.11) Set SEL Time */
 int
 sel_set_time(struct dummy_rq *req, struct dummy_rs *rsp)
@@ -661,6 +754,9 @@ netfn_storage_main(struct dummy_rq *req, struct dummy_rs *rsp)
 		break;
 	case SEL_GET_TIME:
 		rc = sel_get_time(req, rsp);
+		break;
+	case SEL_PARTIAL_ADD_ENTRY:
+		rc = sel_partial_add_entry(req, rsp);
 		break;
 	case SEL_SET_TIME:
 		rc = sel_set_time(req, rsp);
