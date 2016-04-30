@@ -52,6 +52,7 @@ struct ipmi_sel {
 	uint8_t clear_status;
 	uint16_t resrv_id;
 	uint8_t bmc_time[4];
+	int16_t bmc_time_offset[2];
 } ipmi_sel_status = {
 	.version = 0x51,
 	.entries = 0,
@@ -65,6 +66,7 @@ struct ipmi_sel {
 	.clear_status = SEL_CLR_COMPLETE,
 	.resrv_id = 0,
 	.bmc_time = {0, 0, 0, 0},
+	.bmc_time_offset = {0x07, 0xFF},
 };
 
 struct ipmi_sel_record {
@@ -584,6 +586,26 @@ sel_get_time(struct dummy_rq *req, struct dummy_rs *rsp)
 	strftime(tbuf, sizeof(tbuf), "%m/%d/%Y %H:%M:%S",
 			gmtime((time_t *)data));
 	printf("Time sent to client: %s\n", tbuf);
+	return 0;
+}
+
+/* (31.11a) Get SEL Time UTC Offset */
+int
+sel_get_time_utc_offset(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	uint8_t *data;
+	uint8_t data_len = 2 * sizeof(uint8_t);
+	data = malloc(data_len);
+	if (data == NULL) {
+		rsp->ccode = CC_UNSPEC;
+		perror("malloc fail");
+		return (-1);
+	}
+	data[0] = ipmi_sel_status.bmc_time_offset[0];
+	data[1] = ipmi_sel_status.bmc_time_offset[1];
+	rsp->data = data;
+	rsp->data_len = data_len;
+	rsp->ccode = CC_OK;
 	return 0;
 }
 
