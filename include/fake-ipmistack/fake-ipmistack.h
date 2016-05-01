@@ -120,6 +120,7 @@ struct dummy_rs {
 # define SEL_CLEAR 0x47
 # define SEL_GET_TIME 0x48
 # define SEL_SET_TIME 0x49
+# define SEL_SET_TIME_UTC_OFFSET 0x5D
 
 # define TRANSPORT_SET_LAN_CFG 0x01
 # define TRANSPORT_GET_LAN_CFG 0x02

@@ -726,6 +726,29 @@ sel_set_time(struct dummy_rq *req, struct dummy_rs *rsp)
 	return 0;
 }
 
+/* (31.11b) Set SEL Time UTC Offset */
+int
+sel_set_time_utc_offset(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	int16_t utc_offset;
+	if (req->msg.data_len != 2) {
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	}
+	utc_offset = req->msg.data[1] << 8;
+	utc_offset |= req->msg.data[0];
+	printf("[INFO] Received SEL UTC Offset: %" PRIi16 "\n", utc_offset);
+	if (utc_offset > 1440 || utc_offset < (-1440)) {
+		rsp->ccode = CC_PARAM_OOR;
+		return (-1);
+	}
+	ipmi_sel_status.bmc_time_offset[0] = req->msg.data[0];
+	ipmi_sel_status.bmc_time_offset[1] = req->msg.data[1];
+
+	rsp->ccode = CC_OK;
+	return 0;
+}
+
 /* set_sel_overflow - sets SEL overflow status.
  *
  * @overflow: value 0 means no overflow, any other value means overflow
@@ -782,6 +805,9 @@ netfn_storage_main(struct dummy_rq *req, struct dummy_rs *rsp)
 		break;
 	case SEL_SET_TIME:
 		rc = sel_set_time(req, rsp);
+		break;
+	case SEL_SET_TIME_UTC_OFFSET:
+		rc = sel_set_time_utc_offset(req, rsp);
 		break;
 	default:
 		rsp->ccode = CC_CMD_INV;
