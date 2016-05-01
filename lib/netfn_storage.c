@@ -800,6 +800,9 @@ netfn_storage_main(struct dummy_rq *req, struct dummy_rs *rsp)
 	case SEL_GET_TIME:
 		rc = sel_get_time(req, rsp);
 		break;
+	case SEL_GET_TIME_UTC_OFFSET:
+		rc = sel_get_time_utc_offset(req, rsp);
+		break;
 	case SEL_PARTIAL_ADD_ENTRY:
 		rc = sel_partial_add_entry(req, rsp);
 		break;
