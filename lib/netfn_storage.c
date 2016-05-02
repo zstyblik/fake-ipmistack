@@ -129,6 +129,11 @@ sel_add_entry(struct dummy_rq *req, struct dummy_rs *rsp)
 		return (-1);
 	}
 
+	if (req->msg.data[9] != 0x3 && req->msg.data[9] != 0x4) {
+		rsp->ccode = CC_PARAM_OOR;
+		return (-1);
+	}
+
 	for (record_id = 1; ipmi_sel_entries[record_id].record_id != 0xFFFF;
 			record_id++) {
 		if (ipmi_sel_entries[record_id].is_free == 0x1) {
@@ -174,7 +179,12 @@ sel_add_entry(struct dummy_rq *req, struct dummy_rs *rsp)
 		ipmi_sel_entries[record_id].record_data[3] = (uint32_t)time(NULL);
 	}
 	ipmi_sel_status.last_add_ts = (uint32_t)ipmi_sel_entries[record_id].record_data[3];
-	/* FIXME - EvM Rev conversion from IPMIv1.0 to IPMIv1.5+, p457 in data[9] */
+	/* EvM Rev conversion from IPMIv1.0 to IPMIv1.5+, p457 */
+	if (ipmi_sel_entries[record_id].record_data[9] == 0x3) {
+		ipmi_sel_entries[record_id].record_data[7] == 0x1;
+		ipmi_sel_entries[record_id].record_data[8] == 0x0;
+		ipmi_sel_entries[record_id].record_data[9] == 0x4;
+	}
 
 	data[0] = record_id >> 0;
 	data[1] = record_id >> 8;
