@@ -107,6 +107,20 @@ _get_first_sel_entry()
 }
 
 uint16_t
+_get_next_sel_entry(uint16_t record_id)
+{
+	uint16_t i;
+	uint16_t next_record_id = 0xFFFF;
+	for (i = ++record_id; ipmi_sel_entries[i].record_id != 0xFFFF; i++) {
+		if (ipmi_sel_entries[i].is_free == 0x0) {
+			next_record_id = i;
+			break;
+		}
+	}
+	return next_record_id;
+}
+
+uint16_t
 _get_last_sel_entry()
 {
 	int i = 0;
@@ -440,7 +454,7 @@ sel_get_entry(struct dummy_rq *req, struct dummy_rs *rsp)
 	for (i = 1; ipmi_sel_entries[i].record_id != 0xFFFF; i++) {
 		if (ipmi_sel_entries[i].record_id == record_id) {
 			found = 1;
-			next_record_id = ipmi_sel_entries[++i].record_id;
+			next_record_id = _get_next_sel_entry(i);
 			break;
 		}
 	}
