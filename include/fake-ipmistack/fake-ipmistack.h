@@ -109,6 +109,7 @@ struct dummy_rs {
 # define CHASSIS_GET_POH_COUNTER 0x0F
 
 # define PEF_GET_CAPABILITIES 0x10
+# define PEF_GET_CONFIG_PARAMS 0x13
 
 # define SEL_GET_INFO 0x40
 # define SEL_GET_ALLOCATION_INFO 0x41

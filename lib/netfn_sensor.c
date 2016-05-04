@@ -51,6 +51,37 @@ pef_get_capabilities(struct dummy_rq *req, struct dummy_rs *rsp)
 	return 0;
 }
 
+/* (30.4) Get PEF Configuration Params */
+int
+pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	uint8_t *data;
+	uint8_t data_len;
+	uint8_t block_selector;
+	uint8_t parameter_selector;
+	uint8_t revision_only;
+	uint8_t set_selector;
+	if (req->msg.data_len != 3) {
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	}
+	revision_only = req->msg.data[0] & 0x80;
+	parameter_selector = req->msg.data[0] & 0x7F;
+	set_selector = req->msg.data[1];
+	block_selector = req->msg.data[2];
+
+	if (revision_only) {
+		uint8_t data = 0x11;
+		rsp->data = &data;
+		rsp->data_len = 1;
+		rsp->ccode = CC_OK;
+		return 0;
+	}
+
+	rsp->ccode = CC_OK;
+	return 0;
+}
+
 int
 netfn_sensor_main(struct dummy_rq *req, struct dummy_rs *rsp)
 {
@@ -64,6 +95,9 @@ netfn_sensor_main(struct dummy_rq *req, struct dummy_rs *rsp)
 	switch (req->msg.cmd) {
 	case PEF_GET_CAPABILITIES:
 		rc = pef_get_capabilities(req, rsp);
+		break;
+	case PEF_GET_CONFIG_PARAMS:
+		rc = pef_get_config_params(req, rsp);
 		break;
 	default:
 		rsp->ccode = CC_CMD_INV;
