@@ -264,7 +264,7 @@ serve_client(int client_sockfd)
 		printf("ccode: 0x%x\n", rsp.ccode);
 		printf("data_len: %i\n", rsp.data_len);
 		printf("---\n");
-		
+
 		if (data_write(client_sockfd, &rsp, sizeof(rsp)) != 0) {
 			printf("[FAIL] Send response to client.\n");
 			rc = (-1);
@@ -281,7 +281,7 @@ serve_client(int client_sockfd)
 				goto end;
 			}
 		}
-		
+
 		end:
 		if (rq_data_ptr != NULL) {
 			free(rq_data_ptr);
