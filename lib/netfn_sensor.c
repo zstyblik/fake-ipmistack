@@ -132,6 +132,18 @@ pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 	return rc;
 }
 
+/* (30.3) Set PEF Configuration Params */
+int
+pef_set_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	int i;
+	for (i = 0; i < req->msg.data_len; i++) {
+		printf("[INFO] data[%i] = %" PRIu8 "\n", i, req->msg.data[i]);
+	}
+	rsp->ccode = CC_OK;
+	return 0;
+}
+
 int
 netfn_sensor_main(struct dummy_rq *req, struct dummy_rs *rsp)
 {
@@ -148,6 +160,9 @@ netfn_sensor_main(struct dummy_rq *req, struct dummy_rs *rsp)
 		break;
 	case PEF_GET_CONFIG_PARAMS:
 		rc = pef_get_config_params(req, rsp);
+		break;
+	case PEF_SET_CONFIG_PARAMS:
+		rc = pef_set_config_params(req, rsp);
 		break;
 	default:
 		rsp->ccode = CC_CMD_INV;
