@@ -55,6 +55,8 @@ pef_get_capabilities(struct dummy_rq *req, struct dummy_rs *rsp)
 int
 pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 {
+	int i;
+	int rc = 0;
 	uint8_t *data;
 	uint8_t data_len;
 	uint8_t block_selector;
@@ -71,15 +73,63 @@ pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 	block_selector = req->msg.data[2];
 
 	if (revision_only) {
-		uint8_t data = 0x11;
-		rsp->data = &data;
+		data = malloc(1 * sizeof(uint8_t));
+		if (data == NULL) {
+			perror("malloc fail");
+			rsp->ccode = CC_UNSPEC;
+			return (-1);
+		}
+		data[0] = 0x11;
+		rsp->data = data;
 		rsp->data_len = 1;
 		rsp->ccode = CC_OK;
 		return 0;
 	}
 
+	for (i = 0; i < req->msg.data_len; i++) {
+		printf("[INFO] data[%i] = %" PRIu8 "\n", i, req->msg.data[i]);
+	}
+
+	switch (parameter_selector) {
+	case 0x8:
+		data_len = 2 * sizeof(uint8_t);
+		data = malloc(data_len);
+		if (data == NULL) {
+			perror("malloc fail");
+			rsp->ccode = CC_UNSPEC;
+			return (-1);
+		}
+		data[0] = 0x11;
+		data[1] = 0x1;
+		rsp->data = data;
+		rsp->data_len = data_len;
+		rsp->ccode = CC_OK;
+		break;
+	case 0x9:
+		data_len = 5 * sizeof(uint8_t);
+		data = malloc(data_len);
+		if (data == NULL) {
+			perror("malloc fail");
+			rsp->ccode = CC_UNSPEC;
+			return (-1);
+		}
+		data[0] = 0x11;
+		data[1] = 0x1;
+		data[2] = 0x11;
+		data[3] = 0x0;
+		data[4] = 0x0;
+		rsp->data = data;
+		rsp->data_len = data_len;
+		rsp->ccode = CC_OK;
+		break;
+	default:
+		rsp->ccode = CC_CMD_INV;
+		rc = (-1);
+		break;
+	}
+
 	rsp->ccode = CC_OK;
-	return 0;
+	return rc;
 }
 
 int
