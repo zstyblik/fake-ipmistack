@@ -91,6 +91,20 @@ pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 	}
 
 	switch (parameter_selector) {
+	case 0x5:
+		data_len = 2 * sizeof(uint8_t);
+		data = malloc(data_len);
+		if (data == NULL) {
+			perror("malloc fail");
+			rsp->ccode = CC_UNSPEC;
+			return (-1);
+		}
+		data[0] = 0x11;
+		data[1] = 0x1;
+		rsp->data = data;
+		rsp->data_len = data_len;
+		rsp->ccode = CC_OK;
+		break;
 	case 0x8:
 		data_len = 2 * sizeof(uint8_t);
 		data = malloc(data_len);
