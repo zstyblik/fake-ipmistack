@@ -45,18 +45,18 @@ struct ipmi_channel {
 	{ 0x02, 0x02, 0x05, 0x40, 0x00, 0x00, "Serial/Modem, s-session" },
 	{ 0x03, 0x02, 0x02, 0x00, 0x00, 0x00, "ICMB no-session" },
 	{ 0x04, 0x04, 0x09, 0x00, 0x00, 0x00, "IPMI-SMBus no-session" },
-	{ 0x05, 0xFF },
-	{ 0x06, 0xFF },
-	{ 0x07, 0xFF },
-	{ 0x08, 0xFF },
-	{ 0x09, 0xFF },
-	{ 0x0A, 0xFF },
-	{ 0x0B, 0xFF },
-	{ 0x0C, 0xFF },
-	{ 0x0D, 0xFF },
-	{ 0x0E, 0xFF },
+	{ 0x05, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, ""},
+	{ 0x06, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, ""},
+	{ 0x07, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, ""},
+	{ 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, ""},
+	{ 0x09, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, ""},
+	{ 0x0A, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, ""},
+	{ 0x0B, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, ""},
+	{ 0x0C, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, ""},
+	{ 0x0D, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, ""},
+	{ 0x0E, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, ""},
 	{ 0x0F, 0x05, 0x0C, 0x00, 0x00, 0x00, "KCS-SysIntf s-less" },
-	{ -1 }
+	{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, ""}
 };
 
 #define UID_MAX 3
@@ -81,7 +81,7 @@ struct ipmi_user {
 	{ 0x01, "admin", "foo", 0, 0x34, UID_ENABLED },
 	{ 0x02, "test1", "bar", 1, 0x34, UID_DISABLED },
 	{ 0x03, "", "", 0, 0x00, UID_DISABLED },
-	{ -1 }
+	{ -1, "", "", 0, 0x00, UID_DISABLED }
 };
 
 int get_channel_by_number(uint8_t chan_num, struct ipmi_channel *ipmi_chan_ptr);
@@ -132,7 +132,6 @@ int
 app_get_channel_info(struct dummy_rq *req, struct dummy_rs *rsp)
 {
 	struct ipmi_channel channel_t;
-	int8_t tmp = 0;
 	uint8_t *data;
 	uint8_t data_len = 9 * sizeof(uint8_t);
 	if (req->msg.data_len != 1) {
@@ -252,7 +251,7 @@ count_fixed_name_users()
 		if (ipmi_users[i].uid < UID_MIN || ipmi_users[i].uid > UID_MAX) {
 			continue;
 		}
-		if (strcmp(ipmi_users[i].name, "") == 0) {
+		if (strcmp((char *)ipmi_users[i].name, "") == 0) {
 			continue;
 		} else {
 			counter++;
@@ -272,9 +271,9 @@ count_fixed_name_users()
 int
 get_channel_by_number(uint8_t chan_num, struct ipmi_channel *ipmi_chan_ptr)
 {
-	int i = 0;
 	int rc = (-1);
-	for (i = 0; ipmi_channels[i].number != (-1); i++) {
+	uint8_t i = 0;
+	for (i = 0; ipmi_channels[i].number != 0xFF; i++) {
 		if (ipmi_channels[i].number == chan_num
 				&& ipmi_channels[i].ptype != 0x0F) {
 			memcpy(ipmi_chan_ptr, &ipmi_channels[i],
@@ -288,7 +287,7 @@ get_channel_by_number(uint8_t chan_num, struct ipmi_channel *ipmi_chan_ptr)
 
 /* (20.1) BMC Get Device ID */
 int
-mc_get_device_id(struct dummy_rq *req, struct dummy_rs *rsp)
+mc_get_device_id(struct dummy_rs *rsp)
 {
 	int data_len = 14 * sizeof(uint8_t);
 	uint8_t *data;
@@ -335,7 +334,7 @@ mc_get_device_id(struct dummy_rq *req, struct dummy_rs *rsp)
 }
 /* (20.8) Get Device GUID */
 int
-mc_get_device_guid(struct dummy_rq *req, struct dummy_rs *rsp)
+mc_get_device_guid(struct dummy_rs *rsp)
 {
 	/* TODO - GUID generator ???
 	 * http://download.intel.com/design/archives/wfm/downloads/base20.pdf
@@ -377,7 +376,7 @@ mc_reset(struct dummy_rq *req, struct dummy_rs *rsp)
 
 /* (20.4) BMC Selftest */
 int
-mc_selftest(struct dummy_rq *req, struct dummy_rs *rsp)
+mc_selftest(struct dummy_rs *rsp)
 {
 	uint8_t *data;
 	uint8_t data_len = 2 * sizeof(uint8_t);
@@ -612,7 +611,8 @@ user_set_password(struct dummy_rq *req, struct dummy_rs *rsp)
 			break;
 		}
 		password_ptr = &req->msg.data[2];
-		if (strcmp(ipmi_users[uid].password, password_ptr) != 0) {
+		if (strcmp((char *)ipmi_users[uid].password,
+					(char *)password_ptr) != 0) {
 			rsp->ccode = 0x80;
 			rc = (-1);
 			break;
@@ -649,17 +649,17 @@ netfn_app_main(struct dummy_rq *req, struct dummy_rs *rsp)
 		rc = app_set_channel_access(req, rsp);
 		break;
 	case BMC_GET_DEVICE_ID:
-		rc = mc_get_device_id(req, rsp);
+		rc = mc_get_device_id(rsp);
 		break;
 	case BMC_RESET_COLD:
 	case BMC_RESET_WARM:
 		rc = mc_reset(req, rsp);
 		break;
 	case BMC_SELFTEST:
-		rc = mc_selftest(req, rsp);
+		rc = mc_selftest(rsp);
 		break;
 	case BMC_GET_DEVICE_GUID:
-		rc = mc_get_device_guid(req, rsp);
+		rc = mc_get_device_guid(rsp);
 		break;
 	case USER_GET_ACCESS:
 		rc = user_get_access(req, rsp);

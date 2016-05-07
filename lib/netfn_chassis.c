@@ -97,7 +97,7 @@ chassis_control(struct dummy_rq *req, struct dummy_rs *rsp)
 
 /* (28.1) Get Chassis Capabilities */
 int
-chassis_get_capa(struct dummy_rq *req, struct dummy_rs *rsp)
+chassis_get_capa(struct dummy_rs *rsp)
 {
 	uint8_t *data;
 	uint8_t data_len = 5 * sizeof(uint8_t);
@@ -120,7 +120,7 @@ chassis_get_capa(struct dummy_rq *req, struct dummy_rs *rsp)
 
 /* (28.14) Get POH Counter */
 int
-chassis_get_poh_counter(struct dummy_rq *req, struct dummy_rs *rsp)
+chassis_get_poh_counter(struct dummy_rs *rsp)
 {
 	uint8_t *data;
 	uint8_t data_len = 5 * sizeof(uint8_t);
@@ -142,7 +142,7 @@ chassis_get_poh_counter(struct dummy_rq *req, struct dummy_rs *rsp)
 
 /* (28.2) Get Chassis Status */
 int
-chassis_get_status(struct dummy_rq *req, struct dummy_rs *rsp)
+chassis_get_status(struct dummy_rs *rsp)
 {
 	/* TODO */
 	uint8_t *data;
@@ -165,7 +165,7 @@ chassis_get_status(struct dummy_rq *req, struct dummy_rs *rsp)
 
 /* (28.13) Get System Boot Options */
 int
-chassis_get_sysboot_opts(struct dummy_rq *req, struct dummy_rs *rsp)
+chassis_get_sysboot_opts(struct dummy_rs *rsp)
 {
 	rsp->ccode = CC_EXEC_NA_PARAM;
 	return 0;
@@ -173,7 +173,7 @@ chassis_get_sysboot_opts(struct dummy_rq *req, struct dummy_rs *rsp)
 
 /* (28.11) Get System Restart Cause */
 int
-chassis_get_sysres_cause(struct dummy_rq *req, struct dummy_rs *rsp)
+chassis_get_sysres_cause(struct dummy_rs *rsp)
 {
 	uint8_t *data;
 	uint8_t data_len = 2 * sizeof(uint8_t);
@@ -230,7 +230,7 @@ chassis_identify(struct dummy_rq *req, struct dummy_rs *rsp)
 
 /* (28.4) Chassis Reset - superseded by (28.3) Chassis Control */
 int
-chassis_reset(struct dummy_rq *req, struct dummy_rs *rsp)
+chassis_reset(struct dummy_rs *rsp)
 {
 	rsp->ccode = CC_EXEC_NA_PARAM;
 	return 0;
@@ -238,7 +238,7 @@ chassis_reset(struct dummy_rq *req, struct dummy_rs *rsp)
 
 /* (28.7) Set Chassis Capabilities */
 int
-chassis_set_capa(struct dummy_rq *req, struct dummy_rs *rsp)
+chassis_set_capa(struct dummy_rs *rsp)
 {
 	/* TODO */
 	rsp->ccode = CC_EXEC_NA_PARAM;
@@ -353,7 +353,7 @@ chassis_set_pwr_restore_pol(struct dummy_rq *req, struct dummy_rs *rsp)
 
 /* (28.12) Set System Boot Options */
 int
-chassis_set_sysboot_opts(struct dummy_rq *req, struct dummy_rs *rsp)
+chassis_set_sysboot_opts(struct dummy_rs *rsp)
 {
 	/* TODO */
 	rsp->ccode = CC_EXEC_NA_PARAM;
@@ -375,28 +375,28 @@ netfn_chassis_main(struct dummy_rq *req, struct dummy_rs *rsp)
 		rc = chassis_control(req, rsp);
 		break;
 	case CHASSIS_GET_CAPA:
-		rc = chassis_get_capa(req, rsp);
+		rc = chassis_get_capa(rsp);
 		break;
 	case CHASSIS_GET_POH_COUNTER:
-		rc = chassis_get_poh_counter(req, rsp);
+		rc = chassis_get_poh_counter(rsp);
 		break;
 	case CHASSIS_GET_STATUS:
-		rc = chassis_get_status(req, rsp);
+		rc = chassis_get_status(rsp);
 		break;
 	case CHASSIS_GET_SYSBOOT_OPTS:
-		rc = chassis_get_sysboot_opts(req, rsp);
+		rc = chassis_get_sysboot_opts(rsp);
 		break;
 	case CHASSIS_GET_SYSRES_CAUSE:
-		rc = chassis_get_sysres_cause(req, rsp);
+		rc = chassis_get_sysres_cause(rsp);
 		break;
 	case CHASSIS_IDENTIFY:
 		rc = chassis_identify(req, rsp);
 		break;
 	case CHASSIS_RESET:
-		rc = chassis_reset(req, rsp);
+		rc = chassis_reset(rsp);
 		break;
 	case CHASSIS_SET_CAPA:
-		rc = chassis_set_capa(req, rsp);
+		rc = chassis_set_capa(rsp);
 		break;
 	case CHASSIS_SET_FP_BUTTONS:
 		rc = chassis_set_fp_buttons(req, rsp);
@@ -408,7 +408,7 @@ netfn_chassis_main(struct dummy_rq *req, struct dummy_rs *rsp)
 		rc = chassis_set_pwr_restore_pol(req, rsp);
 		break;
 	case CHASSIS_SET_SYSBOOT_OPTS:
-		rc = chassis_set_sysboot_opts(req, rsp);
+		rc = chassis_set_sysboot_opts(rsp);
 		break;
 	default:
 		rsp->ccode = CC_CMD_INV;

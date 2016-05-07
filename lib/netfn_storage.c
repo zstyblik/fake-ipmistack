@@ -94,7 +94,7 @@ struct ipmi_sel_entry {
 	{ 0x2, 0x1, 0x0, NULL },
 	{ 0x3, 0x1, 0x0, NULL },
 	{ 0x4, 0x1, 0x0, NULL },
-	{ 0xFFFF, 0x0 }
+	{ 0xFFFF, 0x0, 0x0, NULL }
 };
 
 
@@ -195,9 +195,9 @@ sel_add_entry(struct dummy_rq *req, struct dummy_rs *rsp)
 	ipmi_sel_status.last_add_ts = (uint32_t)ipmi_sel_entries[record_id].record_data[3];
 	/* EvM Rev conversion from IPMIv1.0 to IPMIv1.5+, p457 */
 	if (ipmi_sel_entries[record_id].record_data[9] == 0x3) {
-		ipmi_sel_entries[record_id].record_data[7] == 0x1;
-		ipmi_sel_entries[record_id].record_data[8] == 0x0;
-		ipmi_sel_entries[record_id].record_data[9] == 0x4;
+		ipmi_sel_entries[record_id].record_data[7] = 0x1;
+		ipmi_sel_entries[record_id].record_data[8] = 0x0;
+		ipmi_sel_entries[record_id].record_data[9] = 0x4;
 	}
 
 	data[0] = record_id >> 0;
@@ -212,7 +212,6 @@ sel_add_entry(struct dummy_rq *req, struct dummy_rs *rsp)
 int
 sel_clear(struct dummy_rq *req, struct dummy_rs *rsp)
 {
-	uint8_t action;
 	uint8_t *data;
 	uint8_t data_len = 1 * sizeof(uint8_t);
 	uint16_t record_id = 0;
@@ -511,7 +510,7 @@ sel_get_entry(struct dummy_rq *req, struct dummy_rs *rsp)
 
 /* (31.2) Get SEL Info */
 int
-sel_get_info(struct dummy_rq *req, struct dummy_rs *rsp)
+sel_get_info(struct dummy_rs *rsp)
 {
 	uint8_t *data;
 	uint8_t data_len = 14 * sizeof(uint8_t);
@@ -566,7 +565,7 @@ sel_get_info(struct dummy_rq *req, struct dummy_rs *rsp)
 
 /* (31.4) Reserve SEL */
 int
-sel_get_reservation(struct dummy_rq *req, struct dummy_rs *rsp)
+sel_get_reservation(struct dummy_rs *rsp)
 {
 	uint8_t *data;
 	uint8_t data_len = 2 * sizeof(uint8_t);
@@ -588,7 +587,7 @@ sel_get_reservation(struct dummy_rq *req, struct dummy_rs *rsp)
 
 /* (31.10) Get SEL Time */
 int
-sel_get_time(struct dummy_rq *req, struct dummy_rs *rsp)
+sel_get_time(struct dummy_rs *rsp)
 {
 	static char tbuf[40];
 	uint8_t *data;
@@ -615,7 +614,7 @@ sel_get_time(struct dummy_rq *req, struct dummy_rs *rsp)
 
 /* (31.11a) Get SEL Time UTC Offset */
 int
-sel_get_time_utc_offset(struct dummy_rq *req, struct dummy_rs *rsp)
+sel_get_time_utc_offset(struct dummy_rs *rsp)
 {
 	uint8_t *data;
 	uint8_t data_len = 2 * sizeof(uint8_t);
@@ -718,6 +717,12 @@ sel_partial_add_entry(struct dummy_rq *req, struct dummy_rs *rsp)
 		ipmi_sel_status.last_add_ts = (uint32_t)ipmi_sel_entries[record_id].record_data[3];
 	}
 
+	data = malloc(data_len);
+	if (data == NULL) {
+		perror("malloc fail");
+		rsp->ccode = CC_UNSPEC;
+		return (-1);
+	}
 	data[0] = record_id >> 0;
 	data[1] = record_id >> 8;
 	rsp->data = data;
@@ -816,16 +821,16 @@ netfn_storage_main(struct dummy_rq *req, struct dummy_rs *rsp)
 		rc = sel_get_entry(req, rsp);
 		break;
 	case SEL_GET_INFO:
-		rc = sel_get_info(req, rsp);
+		rc = sel_get_info(rsp);
 		break;
 	case SEL_GET_RESERVATION:
-		rc = sel_get_reservation(req, rsp);
+		rc = sel_get_reservation(rsp);
 		break;
 	case SEL_GET_TIME:
-		rc = sel_get_time(req, rsp);
+		rc = sel_get_time(rsp);
 		break;
 	case SEL_GET_TIME_UTC_OFFSET:
-		rc = sel_get_time_utc_offset(req, rsp);
+		rc = sel_get_time_utc_offset(rsp);
 		break;
 	case SEL_PARTIAL_ADD_ENTRY:
 		rc = sel_partial_add_entry(req, rsp);

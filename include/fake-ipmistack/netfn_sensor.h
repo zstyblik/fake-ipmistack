@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, Zdenek Styblik
+/* Copyright (c) 2016, Zdenek Styblik
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,37 +26,9 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <stdint.h>
+#ifndef NETFN_SENSOR_H
+# define NETFN_SENSOR_H
 
-/* is_valid_channel - check whether uint8_t is a valid IPMI channel number.
- *
- * @chan_num: IPMI channel number
- *
- * returns: 0 valid, (-1) invalid
- */
-int
-is_valid_channel(uint8_t channel_num)
-{
-	if ((channel_num <= 0x0B)
-		|| (channel_num >= 0x0E && channel_num <= 0x0F)) {
-		return 0;
-	} else {
-		return (-1);
-	}
-}
+int netfn_sensor_main(struct dummy_rq *req, struct dummy_rs *rsp);
 
-/* is_valid_priv_limit - check whether given priv limit is within range.
- *
- * @priv_limit: IPMI User Privilege Limit
- *
- * returns: 0 valid, (-1) invalid
- */
-int
-is_valid_priv_limit(uint8_t priv_limit)
-{
-	if ((0x00 < priv_limit && priv_limit < 0x06) || priv_limit == 0x0F) {
-		return 0;
-	} else {
-		return (-1);
-	}
-}
+#endif

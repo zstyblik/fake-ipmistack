@@ -29,6 +29,7 @@
 #include "fake-ipmistack/fake-ipmistack.h"
 #include "fake-ipmistack/netfn_app.h"
 #include "fake-ipmistack/netfn_chassis.h"
+#include "fake-ipmistack/netfn_sensor.h"
 #include "fake-ipmistack/netfn_storage.h"
 #include "fake-ipmistack/netfn_transport.h"
 
@@ -163,7 +164,7 @@ data_write(int fd, void *data_ptr, int data_len)
 		/* TODO - add poll() */
 		data_written = write(fd, data_ptr, data_len);
 		errno_save = errno;
-		if (data_read > 0) {
+		if (data_written > 0) {
 			data_total+= data_written;
 		}
 		if (errno_save != 0) {

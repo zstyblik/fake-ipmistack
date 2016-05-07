@@ -30,7 +30,7 @@
 
 /* (30.1) PEF Get Capabilities Command */
 int
-pef_get_capabilities(struct dummy_rq *req, struct dummy_rs *rsp)
+pef_get_capabilities(struct dummy_rs *rsp)
 {
 	uint8_t *data;
 	uint8_t data_len = 3 * sizeof(uint8_t);
@@ -71,6 +71,10 @@ pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 	parameter_selector = req->msg.data[0] & 0x7F;
 	set_selector = req->msg.data[1];
 	block_selector = req->msg.data[2];
+	printf("[INFO] Revision only: %i\n", revision_only);
+	printf("[INFO] Param selector: %i\n", parameter_selector);
+	printf("[INFO] Set selector: %i\n", set_selector);
+	printf("[INFO] Block selector: %i\n", block_selector);
 
 	if (revision_only) {
 		data = malloc(1 * sizeof(uint8_t));
@@ -136,13 +140,28 @@ pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 		rsp->data_len = data_len;
 		rsp->ccode = CC_OK;
 		break;
+	case 0xA:
+		data_len = 18 * sizeof(uint8_t);
+		data = malloc(data_len);
+		if (data == NULL) {
+			perror("malloc fail");
+			rsp->ccode = CC_UNSPEC;
+			return (-1);
+		}
+		data[0] = 0x11;
+		data[1] = 0x1;
+		for (int i = 2; i < data_len; i++) {
+			data[i] = i;
+		}
+		rsp->ccode = 0x80;
+		rc = 0;
+		break;
 	default:
 		rsp->ccode = CC_CMD_INV;
 		rc = (-1);
 		break;
 	}
 
-	rsp->ccode = CC_OK;
 	return rc;
 }
 
@@ -170,7 +189,7 @@ netfn_sensor_main(struct dummy_rq *req, struct dummy_rs *rsp)
 	rsp->data = NULL;
 	switch (req->msg.cmd) {
 	case PEF_GET_CAPABILITIES:
-		rc = pef_get_capabilities(req, rsp);
+		rc = pef_get_capabilities(rsp);
 		break;
 	case PEF_GET_CONFIG_PARAMS:
 		rc = pef_get_config_params(req, rsp);
