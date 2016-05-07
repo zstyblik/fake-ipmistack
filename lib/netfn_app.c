@@ -356,6 +356,29 @@ mc_get_device_guid(struct dummy_rs *rsp)
 	return 0;
 }
 
+/* (22.14) Get System GUID */
+int
+mc_get_system_guid(struct dummy_rs *rsp)
+{
+	/* TODO - GUID generator */
+	uint8_t *data;
+	uint8_t data_len = 16;
+	uint8_t i = 0;
+	data = malloc(data_len);
+	if (data == NULL) {
+		perror("malloc fail");
+		rsp->ccode = CC_UNSPEC;
+		return (-1);
+	}
+	for (i = 0; i < data_len; i++) {
+		data[i] = i;
+	}
+	rsp->data_len = data_len;
+	rsp->data = data;
+	rsp->ccode = CC_OK;
+	return 0;
+}
+
 /* (20.2) BMC Cold and (20.3) Warm Reset */
 int
 mc_reset(struct dummy_rq *req, struct dummy_rs *rsp)
@@ -660,6 +683,9 @@ netfn_app_main(struct dummy_rq *req, struct dummy_rs *rsp)
 		break;
 	case BMC_GET_DEVICE_GUID:
 		rc = mc_get_device_guid(rsp);
+		break;
+	case BMC_GET_SYS_GUID:
+		rc = mc_get_system_guid(rsp);
 		break;
 	case USER_GET_ACCESS:
 		rc = user_get_access(req, rsp);
