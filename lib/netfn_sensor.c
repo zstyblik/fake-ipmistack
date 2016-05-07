@@ -153,7 +153,9 @@ pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 		for (int i = 2; i < data_len; i++) {
 			data[i] = i;
 		}
-		rsp->ccode = 0x80;
+		rsp->data = data;
+		rsp->data_len = data_len;
+		rsp->ccode = CC_OK;
 		rc = 0;
 		break;
 	default:
