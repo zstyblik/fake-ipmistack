@@ -95,7 +95,8 @@ pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 	}
 
 	switch (parameter_selector) {
-	case 0x5:
+	# define GET_NUM_EVENT_FILTERS 0x5
+	case GET_NUM_EVENT_FILTERS:
 		data_len = 2 * sizeof(uint8_t);
 		data = malloc(data_len);
 		if (data == NULL) {
@@ -109,7 +110,24 @@ pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 		rsp->data_len = data_len;
 		rsp->ccode = CC_OK;
 		break;
-	case 0x8:
+	# define EVENT_FILTER_TABLE_D1 0x7
+	case EVENT_FILTER_TABLE_D1:
+		data_len = 3 * sizeof(uint8_t);
+		data = malloc(data_len);
+		if (data == NULL) {
+			perror("malloc fail");
+			rsp->ccode = CC_UNSPEC;
+			return (-1);
+		}
+		data[0] = 0x11;
+		data[1] = 0x1;
+		data[2] = 0x80;
+		rsp->data = data;
+		rsp->data_len = data_len;
+		rsp->ccode = CC_OK;
+		break;
+	# define GET_NUM_ALERT_POLICIES 0x8
+	case GET_NUM_ALERT_POLICIES:
 		data_len = 2 * sizeof(uint8_t);
 		data = malloc(data_len);
 		if (data == NULL) {
@@ -123,7 +141,8 @@ pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 		rsp->data_len = data_len;
 		rsp->ccode = CC_OK;
 		break;
-	case 0x9:
+	# define ALERT_POLICY_TABLE 0x9
+	case ALERT_POLICY_TABLE:
 		data_len = 5 * sizeof(uint8_t);
 		data = malloc(data_len);
 		if (data == NULL) {
@@ -140,7 +159,8 @@ pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 		rsp->data_len = data_len;
 		rsp->ccode = CC_OK;
 		break;
-	case 0xA:
+	# define GET_SYSTEM_GUID 0xA
+	case GET_SYSTEM_GUID:
 		data_len = 18 * sizeof(uint8_t);
 		data = malloc(data_len);
 		if (data == NULL) {
