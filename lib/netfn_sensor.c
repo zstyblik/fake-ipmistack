@@ -110,6 +110,24 @@ pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 		rsp->data_len = data_len;
 		rsp->ccode = CC_OK;
 		break;
+	# define EVENT_FILTER_TABLE 0x6
+	case EVENT_FILTER_TABLE:
+		data_len = 22 * sizeof(uint8_t);
+		data = malloc(data_len);
+		if (data == NULL) {
+			perror("malloc fail");
+			rsp->ccode = CC_UNSPEC;
+			return (-1);
+		}
+		data[0] = 0x11;
+		data[1] = 0x1;
+		for (i = 2; i < data_len; i++) {
+			data[i] = i;
+		}
+		rsp->data = data;
+		rsp->data_len = data_len;
+		rsp->ccode = CC_OK;
+		break;
 	# define EVENT_FILTER_TABLE_D1 0x7
 	case EVENT_FILTER_TABLE_D1:
 		data_len = 3 * sizeof(uint8_t);
@@ -170,7 +188,7 @@ pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 		}
 		data[0] = 0x11;
 		data[1] = 0x1;
-		for (int i = 2; i < data_len; i++) {
+		for (i = 2; i < data_len; i++) {
 			data[i] = i;
 		}
 		rsp->data = data;
