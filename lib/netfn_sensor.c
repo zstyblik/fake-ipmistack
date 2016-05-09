@@ -121,7 +121,8 @@ pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 		}
 		data[0] = 0x11;
 		data[1] = 0x1;
-		for (i = 2; i < data_len; i++) {
+		data[2] = 0xC0;
+		for (i = 3; i < data_len; i++) {
 			data[i] = i;
 		}
 		rsp->data = data;
