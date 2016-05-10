@@ -110,6 +110,21 @@ pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 		rsp->data_len = data_len;
 		rsp->ccode = CC_OK;
 		break;
+	# define GET_PEF_ACTION_CONTROL 0x2
+	case GET_PEF_ACTION_CONTROL:
+		data_len = 2 * sizeof(uint8_t);
+		data = malloc(data_len);
+		if (data == NULL) {
+			perror("malloc fail");
+			rsp->ccode = CC_UNSPEC;
+			return (-1);
+		}
+		data[0] = 0x11;
+		data[1] = 0x3F;
+		rsp->data = data;
+		rsp->data_len = data_len;
+		rsp->ccode = CC_OK;
+		break;
 	# define GET_NUM_EVENT_FILTERS 0x5
 	case GET_NUM_EVENT_FILTERS:
 		data_len = 2 * sizeof(uint8_t);
