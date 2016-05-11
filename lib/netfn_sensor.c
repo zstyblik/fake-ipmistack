@@ -28,6 +28,8 @@
  */
 #include "fake-ipmistack/fake-ipmistack.h"
 
+#include <time.h>
+
 /* (30.1) PEF Get Capabilities Command */
 int
 pef_get_capabilities(struct dummy_rs *rsp)
@@ -236,6 +238,44 @@ pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 	return rc;
 }
 
+/* (30.6) Get Last Processed Event ID */
+int
+pef_get_last_processed_event_id(struct dummy_rs *rsp)
+{
+	uint8_t *data;
+	uint8_t data_len = 10 * sizeof(uint8_t);
+	uint32_t time_now;
+	data = malloc(data_len);
+	if (data == NULL) {
+		perror("malloc fail");
+		rsp->ccode = CC_UNSPEC;
+		return (-1);
+	}
+	/* TODO - Get all of this from SEL */
+	/* ipmi_sel.last_add_ts */
+	time_now = (uint32_t)time(NULL);
+	data[0] = time_now >> 0;
+	data[1] = time_now >> 8;
+	data[2] = time_now >> 16;
+	data[3] = time_now >> 24;
+	/* Record ID of the last entry in SEL */
+	data[4] = 0xFF;
+	data[5] = 0xFF;
+	/* Last SW processed Record ID */
+	data[6] = 0xFF;
+	data[7] = 0xFF;
+	/* Last processed Record ID */
+	data[8] = 0x00;
+	data[9] = 0x00;
+	for (int i = 0; i < data_len; i++) {
+		printf("[INFO] data[%i] = %" PRIx8 "\n", i, data[i]);
+	}
+	rsp->data = data;
+	rsp->data_len = data_len;
+	rsp->ccode = CC_OK;
+	return 0;
+}
+
 /* (30.3) Set PEF Configuration Params */
 int
 pef_set_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
@@ -264,6 +304,9 @@ netfn_sensor_main(struct dummy_rq *req, struct dummy_rs *rsp)
 		break;
 	case PEF_GET_CONFIG_PARAMS:
 		rc = pef_get_config_params(req, rsp);
+		break;
+	case PEF_GET_LAST_PROCESSED_ID:
+		rc = pef_get_last_processed_event_id(rsp);
 		break;
 	case PEF_SET_CONFIG_PARAMS:
 		rc = pef_set_config_params(req, rsp);
