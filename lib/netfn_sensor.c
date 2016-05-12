@@ -30,6 +30,40 @@
 
 #include <time.h>
 
+/* (30.2) Arm PEF Postpone Timer */
+int
+pef_arm_postpone_timer(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	uint8_t data[1];
+	static uint8_t timer_value = 0x2A;
+	if (req->msg.data_len != 1) {
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	}
+	/* TODO - hook up to other parts of PEF/SEL. */
+	switch (req->msg.data[0]) {
+	case 0x00:
+		printf("[INFO] Disable PEF Timer.\n");
+		timer_value = 0x00;
+		break;
+	case 0xFE:
+		printf("[INFO] Temporary disabled PEF Timer.\n");
+		break;
+	case 0xFF:
+		printf("[INFO] Get current value of PEF Timer.\n");
+		break;
+	default:
+		printf("[INFO] Set PEF Timer: %" PRIx8 "\n", req->msg.data[0]);
+		timer_value = req->msg.data[0];
+		break;
+	}
+	data[0] = timer_value;
+	rsp->ccode = CC_OK;
+	rsp->data_len = 1;
+	rsp->data = data;
+	return 0;
+}
+
 /* (30.1) PEF Get Capabilities Command */
 int
 pef_get_capabilities(struct dummy_rs *rsp)
@@ -299,6 +333,9 @@ netfn_sensor_main(struct dummy_rq *req, struct dummy_rs *rsp)
 	rsp->data_len = 0;
 	rsp->data = NULL;
 	switch (req->msg.cmd) {
+	case PEF_ARM_POSTPONE_TIMER:
+		rc = pef_arm_postpone_timer(req, rsp);
+		break;
 	case PEF_GET_CAPABILITIES:
 		rc = pef_get_capabilities(rsp);
 		break;
