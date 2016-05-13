@@ -263,6 +263,22 @@ pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 		rsp->ccode = CC_OK;
 		rc = 0;
 		break;
+	# define GET_NUM_ALERT_STRINGS 0xB
+	case GET_NUM_ALERT_STRINGS:
+		data_len = 2 * sizeof(uint8_t);
+		data = malloc(data_len);
+		if (data == NULL) {
+			perror("malloc fail");
+			rsp->ccode = CC_UNSPEC;
+			return (-1);
+		}
+		data[0] = 0x11;
+		data[1] = 0x2;
+		rsp->data = data;
+		rsp->data_len = data_len;
+		rsp->ccode = CC_OK;
+		rc = 0;
+		break;
 	default:
 		rsp->ccode = CC_CMD_INV;
 		rc = (-1);
