@@ -338,6 +338,31 @@ pef_set_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 	return 0;
 }
 
+/* (30.5) Set Last Processed Event ID */
+int
+pef_set_last_processed_event_id(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	uint8_t set_type;
+	uint16_t record_id;
+	if (req->msg.data_len != 3) {
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	}
+	/* TODO - wire this up with the rest of PEF/SEL */
+	set_type = req->msg.data[0] & 0x1;
+	if (set_type == 0x0) {
+		/* Last Record ID processed by SW */
+	} else {
+		/* Last Record ID processed by BMC */
+	}
+	record_id = req->msg.data[2] << 8;
+	record_id = req->msg.data[1];
+	printf("[INFO] Last Processed Event ID: %" PRIu16 "\n", record_id);
+	printf("[INFO] Event type: %s\n", set_type ? "BMC" : "Software");
+	rsp->ccode = CC_OK;
+	return 0;
+}
+
 int
 netfn_sensor_main(struct dummy_rq *req, struct dummy_rs *rsp)
 {
@@ -358,11 +383,14 @@ netfn_sensor_main(struct dummy_rq *req, struct dummy_rs *rsp)
 	case PEF_GET_CONFIG_PARAMS:
 		rc = pef_get_config_params(req, rsp);
 		break;
-	case PEF_GET_LAST_PROCESSED_ID:
+	case PEF_GET_LAST_PROCESSED_EVENT_ID:
 		rc = pef_get_last_processed_event_id(rsp);
 		break;
 	case PEF_SET_CONFIG_PARAMS:
 		rc = pef_set_config_params(req, rsp);
+		break;
+	case PEF_SET_LAST_PROCESSED_EVENT_ID:
+		rc = pef_set_last_processed_event_id(req, rsp);
 		break;
 	default:
 		rsp->ccode = CC_CMD_INV;
