@@ -326,6 +326,40 @@ pef_get_last_processed_event_id(struct dummy_rs *rsp)
 	return 0;
 }
 
+/* (30.8) PET Acknowledge */
+int
+pef_pet_acknowledge(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	char tbuf[40];
+	uint16_t sequence_number;
+	uint32_t timestamp;
+	uint8_t event_src_type;
+	uint8_t sensor_device;
+	uint8_t sensor_number;
+
+	if (req->msg.data_len != 12) {
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	}
+	sequence_number = (uint16_t)req->msg.data[0];
+	timestamp = (uint32_t)req->msg.data[2];
+	event_src_type = req->msg.data[6];
+	sensor_device = req->msg.data[7];
+	sensor_number = req->msg.data[8];
+	strftime(tbuf, sizeof(tbuf), "%m/%d/%Y %H:%M:%S",
+			gmtime((time_t *)&timestamp));
+	printf("[INFO] Sequence Number: %" PRIx16 "\n", sequence_number);
+	printf("[INFO] Timestamp: %s\n", tbuf);
+	printf("[INFO] Evt Src Type: %" PRIx8 "\n", event_src_type);
+	printf("[INFO] Sensor Device: %" PRIx8 "\n", sensor_device);
+	printf("[INFO] Sensor Number: %" PRIx8 "\n", sensor_number);
+	printf("[INFO] Evt Data1: %" PRIx8 "\n", req->msg.data[9]);
+	printf("[INFO] Evt Data2: %" PRIx8 "\n", req->msg.data[10]);
+	printf("[INFO] Evt Data3: %" PRIx8 "\n", req->msg.data[11]);
+	rsp->ccode = CC_OK;
+	return 0;
+}
+
 /* (30.3) Set PEF Configuration Params */
 int
 pef_set_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
@@ -385,6 +419,9 @@ netfn_sensor_main(struct dummy_rq *req, struct dummy_rs *rsp)
 		break;
 	case PEF_GET_LAST_PROCESSED_EVENT_ID:
 		rc = pef_get_last_processed_event_id(rsp);
+		break;
+	case PEF_PET_ACKNOWLEDGE:
+		rc = pef_pet_acknowledge(req, rsp);
 		break;
 	case PEF_SET_CONFIG_PARAMS:
 		rc = pef_set_config_params(req, rsp);
