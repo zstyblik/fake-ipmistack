@@ -30,6 +30,9 @@
 
 #include <time.h>
 
+static uint16_t last_sw_record_id = 0x0;
+static uint16_t last_bmc_record_id = 0x0;
+
 /* (30.2) Arm PEF Postpone Timer */
 int
 pef_arm_postpone_timer(struct dummy_rq *req, struct dummy_rs *rsp)
@@ -312,11 +315,11 @@ pef_get_last_processed_event_id(struct dummy_rs *rsp)
 	data[4] = 0xFF;
 	data[5] = 0xFF;
 	/* Last SW processed Record ID */
-	data[6] = 0xFF;
-	data[7] = 0xFF;
-	/* Last processed Record ID */
-	data[8] = 0x00;
-	data[9] = 0x00;
+	data[6] = last_sw_record_id >> 0;
+	data[7] = last_sw_record_id >> 8;
+	/* Last BMC processed Record ID */
+	data[8] = last_bmc_record_id >> 0;
+	data[9] = last_bmc_record_id >> 8;
 	for (int i = 0; i < data_len; i++) {
 		printf("[INFO] data[%i] = %" PRIx8 "\n", i, data[i]);
 	}
@@ -384,13 +387,13 @@ pef_set_last_processed_event_id(struct dummy_rq *req, struct dummy_rs *rsp)
 	}
 	/* TODO - wire this up with the rest of PEF/SEL */
 	set_type = req->msg.data[0] & 0x1;
-	if (set_type == 0x0) {
-		/* Last Record ID processed by SW */
-	} else {
-		/* Last Record ID processed by BMC */
-	}
 	record_id = req->msg.data[2] << 8;
 	record_id = req->msg.data[1];
+	if (set_type == 0x0) {
+		last_sw_record_id = record_id;
+	} else {
+		last_bmc_record_id = record_id;
+	}
 	printf("[INFO] Last Processed Event ID: %" PRIu16 "\n", record_id);
 	printf("[INFO] Event type: %s\n", set_type ? "BMC" : "Software");
 	rsp->ccode = CC_OK;
