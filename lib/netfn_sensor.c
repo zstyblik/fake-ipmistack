@@ -27,6 +27,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include "fake-ipmistack/fake-ipmistack.h"
+#include "fake-ipmistack/netfn_storage.h"
 
 #include <time.h>
 
@@ -295,22 +296,28 @@ pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 int
 pef_get_last_processed_event_id(struct dummy_rs *rsp)
 {
+	struct ipmi_sel ipmi_sel_status;
+	int rc = 0;
 	uint8_t *data;
 	uint8_t data_len = 10 * sizeof(uint8_t);
-	uint32_t time_now;
+
+	rc = _get_sel_status(&ipmi_sel_status);
+	if (rc != 0) {
+		rsp->ccode = CC_UNSPEC;
+		return (-1);
+	}
+
 	data = malloc(data_len);
 	if (data == NULL) {
 		perror("malloc fail");
 		rsp->ccode = CC_UNSPEC;
 		return (-1);
 	}
-	/* TODO - Get all of this from SEL */
-	/* ipmi_sel.last_add_ts */
-	time_now = (uint32_t)time(NULL);
-	data[0] = time_now >> 0;
-	data[1] = time_now >> 8;
-	data[2] = time_now >> 16;
-	data[3] = time_now >> 24;
+	/* Timestamp of the last added entry to SEL */
+	data[0] = ipmi_sel_status.last_add_ts >> 0;
+	data[1] = ipmi_sel_status.last_add_ts >> 8;
+	data[2] = ipmi_sel_status.last_add_ts >> 16;
+	data[3] = ipmi_sel_status.last_add_ts >> 24;
 	/* Record ID of the last entry in SEL */
 	data[4] = 0xFF;
 	data[5] = 0xFF;

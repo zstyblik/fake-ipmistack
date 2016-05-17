@@ -27,6 +27,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include "fake-ipmistack/fake-ipmistack.h"
+#include "fake-ipmistack/netfn_storage.h"
 
 #include <stdlib.h>
 #include <time.h>
@@ -39,21 +40,7 @@
 # define SEL_SUPPORT_RESERVE 0x02
 # define SEL_SUPPORT_GET_ALLOC 0x01
 
-struct ipmi_sel {
-	uint8_t version;
-	uint16_t entries;
-	uint32_t last_add_ts;
-	uint32_t last_del_ts;
-	uint8_t overflow;
-	uint8_t support_delete;
-	uint8_t support_partial_add;
-	uint8_t support_reserve;
-	uint8_t support_get_alloc;
-	uint8_t clear_status;
-	uint16_t resrv_id;
-	uint8_t bmc_time[4];
-	int16_t bmc_time_offset[2];
-} ipmi_sel_status = {
+struct ipmi_sel ipmi_sel_status = {
 	.version = 0x51,
 	.entries = 0,
 	.last_add_ts = 0xFFFF,
@@ -126,6 +113,17 @@ _get_last_sel_entry()
 	int i = 0;
 	for (i = 0; ipmi_sel_entries[i].record_id != 0xFFFF; i++);
 	return --i;
+}
+
+int
+_get_sel_status(struct ipmi_sel *sel_status)
+{
+	if (sel_status == NULL) {
+		return (-1);
+	}
+	memset(sel_status, 0, sizeof(struct ipmi_sel));
+	memcpy(sel_status, &ipmi_sel_status, sizeof(struct ipmi_sel));
+	return 0;
 }
 
 /* (31.6) Add SEL Entry */

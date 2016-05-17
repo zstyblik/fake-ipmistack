@@ -29,6 +29,23 @@
 #ifndef NETFN_STORAGE_H
 # define NETFN_STORAGE_H
 
+struct ipmi_sel {
+	uint8_t version;
+	uint16_t entries;
+	uint32_t last_add_ts;
+	uint32_t last_del_ts;
+	uint8_t overflow;
+	uint8_t support_delete;
+	uint8_t support_partial_add;
+	uint8_t support_reserve;
+	uint8_t support_get_alloc;
+	uint8_t clear_status;
+	uint16_t resrv_id;
+	uint8_t bmc_time[4];
+	int16_t bmc_time_offset[2];
+};
+
+int _get_sel_status(struct ipmi_sel *);
 int netfn_storage_main(struct dummy_rq *req, struct dummy_rs *rsp);
 
 #endif
