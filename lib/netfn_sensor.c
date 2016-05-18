@@ -34,6 +34,68 @@
 static uint16_t last_sw_record_id = 0x0;
 static uint16_t last_bmc_record_id = 0x0;
 
+struct ipmi_pef_alert_policy {
+	uint8_t id;
+	uint8_t policy_number;
+	uint8_t channel_dest;
+	uint8_t alert_string;
+} ipmi_pef_alert_policies[] = {
+	{ 0x00, 0x18, 0x00, 0x00 },
+	{ 0x01, 0x28, 0x00, 0x00 },
+	{ 0xFF, 0x00, 0x00, 0x00 }
+};
+
+uint8_t
+_get_pef_alert_policy_count()
+{
+	uint8_t policy_count = 0;
+	for (int i = 0; ipmi_pef_alert_policies[i].id != 0xFF; i++) {
+		policy_count++;
+	}
+	return policy_count;
+}
+
+int
+_get_pef_alert_policy(uint8_t policy_id, struct dummy_rs *rsp)
+{
+	uint8_t *data;
+	uint8_t data_len = 5 * sizeof(uint8_t);
+	uint8_t id = 0xFF;
+	uint8_t policy_id_tmp;
+
+	for (int i = 0; ipmi_pef_alert_policies[i].id != 0xFF; i++) {
+		policy_id_tmp = ipmi_pef_alert_policies[i].policy_number >> 4;
+		printf("XXX %" PRIx8 ":%" PRIx8 "\n", policy_id,
+				policy_id_tmp);
+		if (policy_id_tmp == policy_id) {
+			id = i;
+			break;
+		}
+	}
+	if (id == 0xFF) {
+		rsp->ccode = CC_DATA_FIELD_INV;
+		return (-1);
+	}
+
+	data = malloc(data_len);
+	if (data == NULL) {
+		perror("malloc fail");
+		rsp->ccode = CC_UNSPEC;
+		return (-1);
+	}
+
+	data[0] = 0x11;
+	data[1] = policy_id;
+	data[2] = ipmi_pef_alert_policies[id].policy_number;
+	data[3] = ipmi_pef_alert_policies[id].channel_dest;
+	data[4] = ipmi_pef_alert_policies[id].alert_string;
+
+	rsp->data = data;
+	rsp->data_len = data_len;
+	rsp->ccode = CC_OK;
+	return 0;
+}
+
 /* (30.2) Arm PEF Postpone Timer */
 int
 pef_arm_postpone_timer(struct dummy_rq *req, struct dummy_rs *rsp)
@@ -225,28 +287,14 @@ pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 			return (-1);
 		}
 		data[0] = 0x11;
-		data[1] = 0x1;
+		data[1] = _get_pef_alert_policy_count();
 		rsp->data = data;
 		rsp->data_len = data_len;
 		rsp->ccode = CC_OK;
 		break;
 	# define ALERT_POLICY_TABLE 0x9
 	case ALERT_POLICY_TABLE:
-		data_len = 5 * sizeof(uint8_t);
-		data = malloc(data_len);
-		if (data == NULL) {
-			perror("malloc fail");
-			rsp->ccode = CC_UNSPEC;
-			return (-1);
-		}
-		data[0] = 0x11;
-		data[1] = 0x1;
-		data[2] = 0x11;
-		data[3] = 0x0;
-		data[4] = 0x0;
-		rsp->data = data;
-		rsp->data_len = data_len;
-		rsp->ccode = CC_OK;
+		rc  = _get_pef_alert_policy(set_selector, rsp);
 		break;
 	# define GET_SYSTEM_GUID 0xA
 	case GET_SYSTEM_GUID:
