@@ -65,14 +65,13 @@ _get_pef_alert_policy(uint8_t policy_id, struct dummy_rs *rsp)
 
 	for (int i = 0; ipmi_pef_alert_policies[i].id != 0xFF; i++) {
 		policy_id_tmp = ipmi_pef_alert_policies[i].policy_number >> 4;
-		printf("XXX %" PRIx8 ":%" PRIx8 "\n", policy_id,
-				policy_id_tmp);
 		if (policy_id_tmp == policy_id) {
 			id = i;
 			break;
 		}
 	}
 	if (id == 0xFF) {
+		printf("[INFO] Policy ID %" PRIx8 " not found.\n", policy_id);
 		rsp->ccode = CC_DATA_FIELD_INV;
 		return (-1);
 	}
