@@ -27,6 +27,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include "fake-ipmistack/fake-ipmistack.h"
+#include "fake-ipmistack/helper.h"
 #include "fake-ipmistack/netfn_storage.h"
 
 #include <time.h>
@@ -40,10 +41,21 @@ struct ipmi_pef_alert_policy {
 	uint8_t channel_dest;
 	uint8_t alert_string;
 } ipmi_pef_alert_policies[] = {
-	{ 0x00, 0x18, 0x00, 0x00 },
-	{ 0x01, 0x28, 0x00, 0x00 },
+	{ 0x01, 0x18, 0x00, 0x01 },
+	{ 0x02, 0x28, 0x00, 0x00 },
 	{ 0xFF, 0x00, 0x00, 0x00 }
 };
+
+
+#define GET_PEF_CONTROL 0x1
+#define GET_PEF_ACTION_CONTROL 0x2
+#define GET_NUM_EVENT_FILTERS 0x5
+#define EVENT_FILTER_TABLE 0x6
+#define EVENT_FILTER_TABLE_D1 0x7
+#define GET_NUM_ALERT_POLICIES 0x8
+#define ALERT_POLICY_TABLE 0x9
+#define GET_SYSTEM_GUID 0xA
+#define GET_NUM_ALERT_STRINGS 0xB
 
 uint8_t
 _get_pef_alert_policy_count()
@@ -58,19 +70,18 @@ _get_pef_alert_policy_count()
 int
 _get_pef_alert_policy(uint8_t policy_id, struct dummy_rs *rsp)
 {
+	int i;
 	uint8_t *data;
 	uint8_t data_len = 5 * sizeof(uint8_t);
-	uint8_t id = 0xFF;
-	uint8_t policy_id_tmp;
+	uint8_t found = 0;
 
-	for (int i = 0; ipmi_pef_alert_policies[i].id != 0xFF; i++) {
-		policy_id_tmp = ipmi_pef_alert_policies[i].policy_number >> 4;
-		if (policy_id_tmp == policy_id) {
-			id = i;
+	for (i = 0; ipmi_pef_alert_policies[i].id != 0xFF; i++) {
+		if (ipmi_pef_alert_policies[i].id == policy_id) {
+			found = 1;
 			break;
 		}
 	}
-	if (id == 0xFF) {
+	if (found < 1) {
 		printf("[INFO] Policy ID %" PRIx8 " not found.\n", policy_id);
 		rsp->ccode = CC_DATA_FIELD_INV;
 		return (-1);
@@ -84,13 +95,58 @@ _get_pef_alert_policy(uint8_t policy_id, struct dummy_rs *rsp)
 	}
 
 	data[0] = 0x11;
-	data[1] = policy_id;
-	data[2] = ipmi_pef_alert_policies[id].policy_number;
-	data[3] = ipmi_pef_alert_policies[id].channel_dest;
-	data[4] = ipmi_pef_alert_policies[id].alert_string;
+	data[1] = ipmi_pef_alert_policies[i].id;
+	data[2] = ipmi_pef_alert_policies[i].policy_number;
+	data[3] = ipmi_pef_alert_policies[i].channel_dest;
+	data[4] = ipmi_pef_alert_policies[i].alert_string;
 
 	rsp->data = data;
 	rsp->data_len = data_len;
+	rsp->ccode = CC_OK;
+	return 0;
+}
+
+int
+_set_pef_alert_policy(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	int i;
+	uint8_t channel;
+	uint8_t found = 0;
+	uint8_t policy;
+	uint8_t policy_id;
+	if (req->msg.data_len != 5) {
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	}
+	policy_id = req->msg.data[1] & 0x7F;
+	printf("[INFO] PEF Policy Set for ID 0x%" PRIx8 "\n", policy_id);
+	for (i = 0; ipmi_pef_alert_policies[i].id != 0xFF; i++) {
+		if (ipmi_pef_alert_policies[i].id == policy_id) {
+			found = 1;
+			break;
+		}
+	}
+	if (found < 1) {
+		printf("[ERROR] Policy not found.\n");
+		rsp->ccode = CC_DATA_FIELD_INV;
+		return (-1);
+	}
+
+	channel = (req->msg.data[3] & 0xF0) >> 4;
+	policy = req->msg.data[2] & 0x07;
+	if (policy > 0x04) {
+		printf("[ERROR] Invalid policy: %" PRIx8 "\n", policy);
+		rsp->ccode = CC_DATA_FIELD_INV;
+		return (-1);
+	} else if (is_valid_channel(channel) != 0) {
+		printf("[ERROR] Invalid channel number: %" PRIx8 "\n", channel);
+		rsp->ccode = CC_DATA_FIELD_INV;
+		return (-1);
+	}
+
+	ipmi_pef_alert_policies[i].policy_number = req->msg.data[2];
+	ipmi_pef_alert_policies[i].channel_dest = req->msg.data[3];
+	ipmi_pef_alert_policies[i].alert_string = req->msg.data[4];
 	rsp->ccode = CC_OK;
 	return 0;
 }
@@ -196,7 +252,6 @@ pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 	}
 
 	switch (parameter_selector) {
-	# define GET_PEF_CONTROL 0x1
 	case GET_PEF_CONTROL:
 		data_len = 2 * sizeof(uint8_t);
 		data = malloc(data_len);
@@ -211,7 +266,6 @@ pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 		rsp->data_len = data_len;
 		rsp->ccode = CC_OK;
 		break;
-	# define GET_PEF_ACTION_CONTROL 0x2
 	case GET_PEF_ACTION_CONTROL:
 		data_len = 2 * sizeof(uint8_t);
 		data = malloc(data_len);
@@ -226,7 +280,6 @@ pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 		rsp->data_len = data_len;
 		rsp->ccode = CC_OK;
 		break;
-	# define GET_NUM_EVENT_FILTERS 0x5
 	case GET_NUM_EVENT_FILTERS:
 		data_len = 2 * sizeof(uint8_t);
 		data = malloc(data_len);
@@ -241,7 +294,6 @@ pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 		rsp->data_len = data_len;
 		rsp->ccode = CC_OK;
 		break;
-	# define EVENT_FILTER_TABLE 0x6
 	case EVENT_FILTER_TABLE:
 		data_len = 22 * sizeof(uint8_t);
 		data = malloc(data_len);
@@ -260,7 +312,6 @@ pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 		rsp->data_len = data_len;
 		rsp->ccode = CC_OK;
 		break;
-	# define EVENT_FILTER_TABLE_D1 0x7
 	case EVENT_FILTER_TABLE_D1:
 		data_len = 3 * sizeof(uint8_t);
 		data = malloc(data_len);
@@ -276,7 +327,6 @@ pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 		rsp->data_len = data_len;
 		rsp->ccode = CC_OK;
 		break;
-	# define GET_NUM_ALERT_POLICIES 0x8
 	case GET_NUM_ALERT_POLICIES:
 		data_len = 2 * sizeof(uint8_t);
 		data = malloc(data_len);
@@ -291,11 +341,9 @@ pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 		rsp->data_len = data_len;
 		rsp->ccode = CC_OK;
 		break;
-	# define ALERT_POLICY_TABLE 0x9
 	case ALERT_POLICY_TABLE:
 		rc  = _get_pef_alert_policy(set_selector, rsp);
 		break;
-	# define GET_SYSTEM_GUID 0xA
 	case GET_SYSTEM_GUID:
 		data_len = 18 * sizeof(uint8_t);
 		data = malloc(data_len);
@@ -314,7 +362,6 @@ pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 		rsp->ccode = CC_OK;
 		rc = 0;
 		break;
-	# define GET_NUM_ALERT_STRINGS 0xB
 	case GET_NUM_ALERT_STRINGS:
 		data_len = 2 * sizeof(uint8_t);
 		data = malloc(data_len);
@@ -422,11 +469,27 @@ int
 pef_set_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 {
 	int i;
-	for (i = 0; i < req->msg.data_len; i++) {
-		printf("[INFO] data[%i] = %" PRIu8 "\n", i, req->msg.data[i]);
+	int rc = 0;
+	uint8_t parameter_selector;
+	if (req->msg.data_len < 1) {
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
 	}
-	rsp->ccode = CC_OK;
-	return 0;
+
+	for (i = 0; i < req->msg.data_len; i++) {
+		printf("[INFO] data[%i] = %" PRIx8 "\n", i, req->msg.data[i]);
+	}
+	parameter_selector = req->msg.data[0] & 0x7F;
+	switch (parameter_selector) {
+	case ALERT_POLICY_TABLE:
+		rc = _set_pef_alert_policy(req, rsp);
+		break;
+	default:
+		rsp->ccode = CC_CMD_INV;
+		rc = (-1);
+		break;
+	}
+	return rc;
 }
 
 /* (30.5) Set Last Processed Event ID */
