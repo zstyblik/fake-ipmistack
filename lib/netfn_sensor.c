@@ -46,6 +46,34 @@ struct ipmi_pef_alert_policy {
 	{ 0xFF, 0x00, 0x00, 0x00 }
 };
 
+struct ipmi_pef_event_filter {
+	uint8_t id;
+	uint8_t config;
+	uint8_t action;
+	uint8_t alert_policy_number;
+	uint8_t event_serverity;
+	uint8_t generator_id_byte1;
+	uint8_t generator_id_byte2;
+	uint8_t sensor_type;
+	uint8_t sensor_num;
+	uint8_t event_trigger;
+	uint8_t event_data1_offset_mask_d1;
+	uint8_t event_data1_offset_mask_d2;
+	uint8_t event_data1_and_mask;
+	uint8_t event_data1_compare1;
+	uint8_t event_data1_compare2;
+	uint8_t event_data2_and_mask;
+	uint8_t event_data2_compare1;
+	uint8_t event_data2_compare2;
+	uint8_t event_data3_and_mask;
+	uint8_t event_data3_compare1;
+	uint8_t event_data3_compare2;
+} ipmi_pef_event_filters[] = {
+	{ 0x01, 0x80, 0x7F, 0x1, 0x1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1 },
+	{ 0x02, 0x80, 0x0, 0x1, 0x2, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 },
+	{ 0x03, 0x0, 0x0, 0x1, 0x1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 },
+	{ 0xFF, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 }
+};
 
 #define GET_PEF_CONTROL 0x1
 #define GET_PEF_ACTION_CONTROL 0x2
@@ -65,6 +93,16 @@ _get_pef_alert_policy_count()
 		policy_count++;
 	}
 	return policy_count;
+}
+
+uint8_t
+_get_pef_event_filter_count()
+{
+	uint8_t event_filter_count = 0;
+	for (int i = 0; ipmi_pef_event_filters[i].id != 0xFF; i++) {
+		event_filter_count++;
+	}
+	return event_filter_count;
 }
 
 int
@@ -99,6 +137,57 @@ _get_pef_alert_policy(uint8_t policy_id, struct dummy_rs *rsp)
 	data[2] = ipmi_pef_alert_policies[i].policy_number;
 	data[3] = ipmi_pef_alert_policies[i].channel_dest;
 	data[4] = ipmi_pef_alert_policies[i].alert_string;
+
+	rsp->data = data;
+	rsp->data_len = data_len;
+	rsp->ccode = CC_OK;
+	return 0;
+}
+
+int
+_get_pef_event_filter(uint8_t filter_id, struct dummy_rs *rsp,
+		uint8_t whole_entry)
+{
+	int i;
+	uint8_t *data;
+	uint8_t data_len;
+	uint8_t found;
+	uint8_t entry_size = (uint8_t)sizeof(struct ipmi_pef_event_filter);
+
+	for (i = 0; ipmi_pef_event_filters[i].id != 0xFF; i++) {
+		if (ipmi_pef_event_filters[i].id == filter_id) {
+			found = 1;
+			break;
+		}
+	}
+	if (found < 1) {
+		printf("[ERROR] Filter ID %" PRIx8 " not found.\n", filter_id);
+		rsp->ccode = CC_DATA_FIELD_INV;
+		return (-1);
+	}
+
+	if (whole_entry) {
+		data_len = 22 * sizeof(uint8_t);
+
+		if ((data_len - 1) < entry_size) {
+			printf("[ERROR] Size mismatch: %i, %i\n",
+					(data_len - 1),
+					(int)entry_size);
+			rsp->ccode = CC_UNSPEC;
+			return (-1);
+		}
+	} else {
+		data_len = 3 * sizeof(uint8_t);
+	}
+	data = malloc(data_len);
+	if (data == NULL) {
+		perror("malloc fail");
+		rsp->ccode = CC_UNSPEC;
+		return (-1);
+	}
+
+	data[0] = 0x11;
+	memcpy(&data[1], &ipmi_pef_event_filters[i], (data_len - 1));
 
 	rsp->data = data;
 	rsp->data_len = data_len;
@@ -201,7 +290,7 @@ pef_get_capabilities(struct dummy_rs *rsp)
 	data[0] = 0x51;
 	/* support everything */
 	data[1] = 0xBF;
-	data[2] = 1;
+	data[2] = _get_pef_event_filter_count();
 	rsp->data = data;
 	rsp->data_len = data_len;
 	rsp->ccode = CC_OK;
@@ -289,43 +378,16 @@ pef_get_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 			return (-1);
 		}
 		data[0] = 0x11;
-		data[1] = 0x1;
+		data[1] = _get_pef_event_filter_count();
 		rsp->data = data;
 		rsp->data_len = data_len;
 		rsp->ccode = CC_OK;
 		break;
 	case EVENT_FILTER_TABLE:
-		data_len = 22 * sizeof(uint8_t);
-		data = malloc(data_len);
-		if (data == NULL) {
-			perror("malloc fail");
-			rsp->ccode = CC_UNSPEC;
-			return (-1);
-		}
-		data[0] = 0x11;
-		data[1] = 0x1;
-		data[2] = 0xC0;
-		for (i = 3; i < data_len; i++) {
-			data[i] = i;
-		}
-		rsp->data = data;
-		rsp->data_len = data_len;
-		rsp->ccode = CC_OK;
+		rc = _get_pef_event_filter(set_selector, rsp, 1);
 		break;
 	case EVENT_FILTER_TABLE_D1:
-		data_len = 3 * sizeof(uint8_t);
-		data = malloc(data_len);
-		if (data == NULL) {
-			perror("malloc fail");
-			rsp->ccode = CC_UNSPEC;
-			return (-1);
-		}
-		data[0] = 0x11;
-		data[1] = 0x1;
-		data[2] = 0x80;
-		rsp->data = data;
-		rsp->data_len = data_len;
-		rsp->ccode = CC_OK;
+		rc = _get_pef_event_filter(set_selector, rsp, 0);
 		break;
 	case GET_NUM_ALERT_POLICIES:
 		data_len = 2 * sizeof(uint8_t);
