@@ -85,26 +85,6 @@ struct ipmi_pef_event_filter {
 #define GET_SYSTEM_GUID 0xA
 #define GET_NUM_ALERT_STRINGS 0xB
 
-uint8_t
-_get_pef_alert_policy_count()
-{
-	uint8_t policy_count = 0;
-	for (int i = 0; ipmi_pef_alert_policies[i].id != 0xFF; i++) {
-		policy_count++;
-	}
-	return policy_count;
-}
-
-uint8_t
-_get_pef_event_filter_count()
-{
-	uint8_t event_filter_count = 0;
-	for (int i = 0; ipmi_pef_event_filters[i].id != 0xFF; i++) {
-		event_filter_count++;
-	}
-	return event_filter_count;
-}
-
 int
 _get_pef_alert_policy(uint8_t policy_id, struct dummy_rs *rsp)
 {
@@ -142,6 +122,16 @@ _get_pef_alert_policy(uint8_t policy_id, struct dummy_rs *rsp)
 	rsp->data_len = data_len;
 	rsp->ccode = CC_OK;
 	return 0;
+}
+
+uint8_t
+_get_pef_alert_policy_count()
+{
+	uint8_t policy_count = 0;
+	for (int i = 0; ipmi_pef_alert_policies[i].id != 0xFF; i++) {
+		policy_count++;
+	}
+	return policy_count;
 }
 
 int
@@ -193,6 +183,16 @@ _get_pef_event_filter(uint8_t filter_id, struct dummy_rs *rsp,
 	rsp->data_len = data_len;
 	rsp->ccode = CC_OK;
 	return 0;
+}
+
+uint8_t
+_get_pef_event_filter_count()
+{
+	uint8_t event_filter_count = 0;
+	for (int i = 0; ipmi_pef_event_filters[i].id != 0xFF; i++) {
+		event_filter_count++;
+	}
+	return event_filter_count;
 }
 
 int
