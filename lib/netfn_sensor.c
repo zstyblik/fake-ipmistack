@@ -240,6 +240,46 @@ _set_pef_alert_policy(struct dummy_rq *req, struct dummy_rs *rsp)
 	return 0;
 }
 
+int
+_set_pef_event_filter(struct dummy_rq *req, struct dummy_rs *rsp, uint8_t whole_entry)
+{
+	uint8_t filter_id;
+	uint8_t found;
+	uint8_t i;
+	uint8_t req_data_len;
+
+	if (whole_entry) {
+		req_data_len = 22;
+	} else {
+		req_data_len = 3;
+	}
+	if (req->msg.data_len != req_data_len) {
+		printf("[ERROR] Data len: %" PRIu8 ":%" PRIu8 "\n",
+				req->msg.data_len, req_data_len);
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	}
+
+	filter_id = req->msg.data[1];
+	printf("[INFO] PEF Event Filter Set for ID %" PRIx8 "\n", filter_id);
+	for (i = 0; ipmi_pef_event_filters[i].id != 0xFF; i++) {
+		if (ipmi_pef_event_filters[i].id == filter_id) {
+			found = 1;
+			break;
+		}
+	}
+	if (found < 1) {
+		printf("[ERROR] Filter ID %" PRIx8 " not found.\n", filter_id);
+		rsp->ccode = CC_DATA_FIELD_INV;
+		return (-1);
+	}
+
+	memcpy(&ipmi_pef_event_filters[i].config, &req->msg.data[2],
+			(req_data_len - 2));
+	rsp->ccode = CC_OK;
+	return 0;
+}
+
 /* (30.2) Arm PEF Postpone Timer */
 int
 pef_arm_postpone_timer(struct dummy_rq *req, struct dummy_rs *rsp)
@@ -543,6 +583,11 @@ pef_set_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
 	}
 	parameter_selector = req->msg.data[0] & 0x7F;
 	switch (parameter_selector) {
+	case EVENT_FILTER_TABLE:
+		rc = _set_pef_event_filter(req, rsp, 1);
+	case EVENT_FILTER_TABLE_D1:
+		rc = _set_pef_event_filter(req, rsp, 0);
+		break;
 	case ALERT_POLICY_TABLE:
 		rc = _set_pef_alert_policy(req, rsp);
 		break;
