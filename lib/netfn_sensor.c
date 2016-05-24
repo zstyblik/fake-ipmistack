@@ -280,6 +280,55 @@ _set_pef_event_filter(struct dummy_rq *req, struct dummy_rs *rsp, uint8_t whole_
 	return 0;
 }
 
+/* (30.7) Alert Immediate */
+int
+pef_alert_immediate(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	uint8_t *data;
+	uint8_t channel;
+	uint8_t destination;
+	uint8_t operation;
+	if (req->msg.data_len < 3) {
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	}
+	channel = req->msg.data[0] & 0x07;
+	if (is_valid_channel(channel) != 0) {
+		printf("[ERROR] Invalid channel number: %" PRIx8 "\n", channel);
+		rsp->ccode = CC_DATA_FIELD_INV;
+		return (-1);
+	}
+
+	destination = req->msg.data[1] & 0x07;
+	operation = (req->msg.data[1] & 0xC0) >> 6;
+	if (operation == 0x03) {
+		rsp->ccode = CC_DATA_FIELD_INV;
+		return (-1);
+	}
+
+	printf("[INFO] Channel %" PRIx8 "\n", channel);
+	printf("[INFO] Destination %" PRIx8 "\n", destination);
+	printf("[INFO] Operation %" PRIx8 "\n", operation);
+	for (int i = 2; i < req->msg.data[i]; i++) {
+		printf("[INFO] data[%i]: %" PRIx8 "\n", i, req->msg.data[i]);
+	}
+
+	if (operation == 0x01) {
+		data = malloc(sizeof(uint8_t));
+		if (data == NULL) {
+			perror("malloc fail");
+			rsp->ccode = CC_UNSPEC;
+			return (-1);
+		}
+		data[0] = 0x00;
+		rsp->data = data;
+		rsp->data_len = sizeof(uint8_t);
+	}
+
+	rsp->ccode = CC_OK;
+	return 0;
+}
+
 /* (30.2) Arm PEF Postpone Timer */
 int
 pef_arm_postpone_timer(struct dummy_rq *req, struct dummy_rs *rsp)
@@ -635,6 +684,9 @@ netfn_sensor_main(struct dummy_rq *req, struct dummy_rs *rsp)
 	rsp->data_len = 0;
 	rsp->data = NULL;
 	switch (req->msg.cmd) {
+	case PEF_ALERT_IMMEDIATE:
+		rc = pef_alert_immediate(req, rsp);
+		break;
 	case PEF_ARM_POSTPONE_TIMER:
 		rc = pef_arm_postpone_timer(req, rsp);
 		break;
