@@ -85,6 +85,7 @@ struct ipmi_pef_event_filter {
 #define GET_SYSTEM_GUID 0xA
 #define GET_NUM_ALERT_STRINGS 0xB
 
+/* _get_pef_alert_policy - gets Alert Policy, if found */
 int
 _get_pef_alert_policy(uint8_t policy_id, struct dummy_rs *rsp)
 {
@@ -124,6 +125,7 @@ _get_pef_alert_policy(uint8_t policy_id, struct dummy_rs *rsp)
 	return 0;
 }
 
+/* _get_pef_alert_policy_count - returns number of Alert Policies */
 uint8_t
 _get_pef_alert_policy_count()
 {
@@ -134,6 +136,7 @@ _get_pef_alert_policy_count()
 	return policy_count;
 }
 
+/* _get_pef_event_filter - gets Event Filter, if exists. */
 int
 _get_pef_event_filter(uint8_t filter_id, struct dummy_rs *rsp,
 		uint8_t whole_entry)
@@ -185,6 +188,7 @@ _get_pef_event_filter(uint8_t filter_id, struct dummy_rs *rsp,
 	return 0;
 }
 
+/* _get_pef_event_filter_count - returns number of Event Filters */
 uint8_t
 _get_pef_event_filter_count()
 {
@@ -195,6 +199,7 @@ _get_pef_event_filter_count()
 	return event_filter_count;
 }
 
+/* _set_pef_alert_policy - update Alert Policy data. */
 int
 _set_pef_alert_policy(struct dummy_rq *req, struct dummy_rs *rsp)
 {
@@ -240,6 +245,7 @@ _set_pef_alert_policy(struct dummy_rq *req, struct dummy_rs *rsp)
 	return 0;
 }
 
+/* _set_pef_event_filter - update Event Filter data. */
 int
 _set_pef_event_filter(struct dummy_rq *req, struct dummy_rs *rsp, uint8_t whole_entry)
 {
@@ -339,7 +345,6 @@ pef_arm_postpone_timer(struct dummy_rq *req, struct dummy_rs *rsp)
 		rsp->ccode = CC_DATA_LEN;
 		return (-1);
 	}
-	/* TODO - hook up to other parts of PEF/SEL. */
 	switch (req->msg.data[0]) {
 	case 0x00:
 		printf("[INFO] Disable PEF Timer.\n");
@@ -658,7 +663,6 @@ pef_set_last_processed_event_id(struct dummy_rq *req, struct dummy_rs *rsp)
 		rsp->ccode = CC_DATA_LEN;
 		return (-1);
 	}
-	/* TODO - wire this up with the rest of PEF/SEL */
 	set_type = req->msg.data[0] & 0x1;
 	record_id = req->msg.data[2] << 8;
 	record_id = req->msg.data[1];
