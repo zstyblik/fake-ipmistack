@@ -38,6 +38,22 @@ static uint8_t g_sys_restart_cause = 0xF1;
 static uint8_t g_poh_mins_pcount = 60;
 static uint32_t g_poh_counter = 28;
 
+struct chassis_capabilities_t {
+	uint8_t flags;
+	uint8_t fru_info_addr;
+	uint8_t sdr_addr;
+	uint8_t sel_addr;
+	uint8_t smd_addr;
+	uint8_t bridge_addr;
+} chassis_capabilities = {
+	.flags = 0x0F,
+	.fru_info_addr = 0x20,
+	.sdr_addr = 0x20,
+	.sel_addr = 0x20,
+	.smd_addr = 0x20,
+	.bridge_addr = 0x20,
+};
+
 struct chassis_status {
 	uint8_t fp_buttons;
 	uint8_t led_identify;
@@ -101,18 +117,20 @@ chassis_get_capa(struct dummy_rs *rsp)
 {
 	uint8_t *data;
 	uint8_t data_len = 5 * sizeof(uint8_t);
+	if (data_len > sizeof(struct chassis_capabilities_t)) {
+		printf("[WARN] Adjusting data_len.\n");
+		data_len = sizeof(struct chassis_capabilities_t);
+	}
 	data = malloc(data_len);
 	if (data == NULL) {
 		perror("malloc fail");
 		rsp->ccode = CC_UNSPEC;
 		return (-1);
 	}
-	data[0] = 0xFF;
-	/* FRU, SDR, SEL, SysMgmt - no idea about addrs */
-	data[1] = 0x0;
-	data[2] = 0x20;
-	data[3] = 0x20;
-	data[4] = 0x20;
+	memcpy(data, &chassis_capabilities, data_len);
+	for (int i = 0; i < data_len; i++) {
+		printf("[INFO] data[%i]: %" PRIx8 "\n", i, data[i]);
+	}
 	rsp->data = data;
 	rsp->data_len = data_len;
 	return 0;
