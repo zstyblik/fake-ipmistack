@@ -256,10 +256,18 @@ chassis_reset(struct dummy_rs *rsp)
 
 /* (28.7) Set Chassis Capabilities */
 int
-chassis_set_capa(struct dummy_rs *rsp)
+chassis_set_capa(struct dummy_rq *req, struct dummy_rs *rsp)
 {
-	/* TODO */
-	rsp->ccode = CC_EXEC_NA_PARAM;
+	if (req->msg.data_len != 5 && req->msg.data_len != 6) {
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	} else if (req->msg.data_len > sizeof(struct chassis_capabilities_t)) {
+		printf("[ERROR] data_len > sizeof(struct)\n");
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	}
+	memcpy(&chassis_capabilities, &req->msg.data[0], req->msg.data_len);
+	rsp->ccode = CC_OK;
 	return 0;
 }
 
@@ -414,7 +422,7 @@ netfn_chassis_main(struct dummy_rq *req, struct dummy_rs *rsp)
 		rc = chassis_reset(rsp);
 		break;
 	case CHASSIS_SET_CAPA:
-		rc = chassis_set_capa(rsp);
+		rc = chassis_set_capa(req, rsp);
 		break;
 	case CHASSIS_SET_FP_BUTTONS:
 		rc = chassis_set_fp_buttons(req, rsp);
