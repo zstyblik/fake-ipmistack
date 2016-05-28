@@ -62,6 +62,8 @@ struct chassis_status {
 	uint8_t sys_restart_cause;
 };
 
+# define BOOT_SVC_PARTITION 0x1
+
 /* (28.3) Chassis Control */
 int
 chassis_control(struct dummy_rq *req, struct dummy_rs *rsp)
@@ -183,10 +185,46 @@ chassis_get_status(struct dummy_rs *rsp)
 
 /* (28.13) Get System Boot Options */
 int
-chassis_get_sysboot_opts(struct dummy_rs *rsp)
+chassis_get_sysboot_opts(struct dummy_rq *req, struct dummy_rs *rsp)
 {
-	rsp->ccode = CC_EXEC_NA_PARAM;
-	return 0;
+	/* WIP */
+	int rc = 0;
+	uint8_t *data;
+	uint8_t data_len;
+	uint8_t param_selector;
+	uint8_t set_selector;
+	if (req->msg.data_len != 3) {
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	}
+	param_selector = req->msg.data[0] & 0x7F;
+	set_selector = req->msg.data[1];
+	/* data[0] = 0x1
+	 * data[1] = [7] 1:invalid/locked, valid/unl + param selector
+	 */
+	switch (param_selector) {
+	case BOOT_SVC_PARTITION:
+		data_len = 3 * sizeof(uint8_t);
+		data = malloc(data_len);
+		if (data == NULL) {
+			perror("malloc fail");
+			rsp->ccode = CC_UNSPEC;
+			return (-1);
+		}
+		data[0] = 0x1;
+		data[1] = set_selector;
+		data[2] = 0x00;
+		rsp->data = data;
+		rsp->data_len = data_len;
+		rsp->ccode = CC_OK;
+	default:
+		printf("[ERROR] Unsupported param selector: %" PRIx8 "\n",
+				param_selector);
+		rsp->ccode = CC_DATA_FIELD_INV;
+		rc = (-1);
+		break;
+	}
+	return rc;
 }
 
 /* (28.11) Get System Restart Cause */
@@ -410,7 +448,7 @@ netfn_chassis_main(struct dummy_rq *req, struct dummy_rs *rsp)
 		rc = chassis_get_status(rsp);
 		break;
 	case CHASSIS_GET_SYSBOOT_OPTS:
-		rc = chassis_get_sysboot_opts(rsp);
+		rc = chassis_get_sysboot_opts(req, rsp);
 		break;
 	case CHASSIS_GET_SYSRES_CAUSE:
 		rc = chassis_get_sysres_cause(rsp);
