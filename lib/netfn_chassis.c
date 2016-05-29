@@ -62,7 +62,8 @@ struct chassis_status {
 	uint8_t sys_restart_cause;
 };
 
-# define BOOT_SVC_PARTITION 0x1
+# define BOOT_SVC_PARTITION 0x01
+# define BOOT_SVC_PARTITION_SCAN 0x02
 
 /* (28.3) Chassis Control */
 int
@@ -217,6 +218,21 @@ chassis_get_sysboot_opts(struct dummy_rq *req, struct dummy_rs *rsp)
 		rsp->data = data;
 		rsp->data_len = data_len;
 		rsp->ccode = CC_OK;
+		break;
+	case BOOT_SVC_PARTITION_SCAN:
+		data_len = 3 * sizeof(uint8_t);
+		data = malloc(data_len);
+		if (data == NULL) {
+			perror("malloc fail");
+			rsp->ccode = CC_UNSPEC;
+			return (-1);
+		}
+		data[0] = 0x1;
+		data[1] = set_selector;
+		data[2] = 0x01;
+		rsp->data = data;
+		rsp->data_len = data_len;
+		break;
 	default:
 		printf("[ERROR] Unsupported param selector: %" PRIx8 "\n",
 				param_selector);
