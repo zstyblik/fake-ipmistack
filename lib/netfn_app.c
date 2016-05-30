@@ -84,6 +84,8 @@ struct ipmi_user {
 	{ -1, "", "", 0, 0x00, UID_DISABLED }
 };
 
+uint8_t acpi_power_state[2] = {0x2A, 0x2A};
+
 int get_channel_by_number(uint8_t chan_num, struct ipmi_channel *ipmi_chan_ptr);
 
 /* (22.23) Get Channel Access */
@@ -285,6 +287,24 @@ get_channel_by_number(uint8_t chan_num, struct ipmi_channel *ipmi_chan_ptr)
 	return rc;
 }
 
+/* (20.7) Get ACPI Power State */
+int
+mc_get_acpi_power_state(struct dummy_rs *rsp) {
+	uint8_t *data;
+	uint8_t data_len = 2 * sizeof(uint8_t);
+	data = malloc(data_len);
+	if (data == NULL) {
+		perror("malloc fail");
+		rsp->ccode = CC_UNSPEC;
+		return (-1);
+	}
+	memcpy(data, &acpi_power_state, data_len);
+	rsp->data = data;
+	rsp->data_len = data_len;
+	rsp->ccode = CC_OK;
+	return 0;
+}
+
 /* (20.1) BMC Get Device ID */
 int
 mc_get_device_id(struct dummy_rs *rsp)
@@ -332,6 +352,7 @@ mc_get_device_id(struct dummy_rs *rsp)
 	rsp->data_len = data_len;
 	return 0;
 }
+
 /* (20.8) Get Device GUID */
 int
 mc_get_device_guid(struct dummy_rs *rsp)
@@ -670,6 +691,9 @@ netfn_app_main(struct dummy_rq *req, struct dummy_rs *rsp)
 		break;
 	case APP_SET_CHANNEL_ACCESS:
 		rc = app_set_channel_access(req, rsp);
+		break;
+	case BMC_GET_ACPI_PSTATE:
+		rc = mc_get_acpi_power_state(rsp);
 		break;
 	case BMC_GET_DEVICE_ID:
 		rc = mc_get_device_id(rsp);
