@@ -289,7 +289,8 @@ get_channel_by_number(uint8_t chan_num, struct ipmi_channel *ipmi_chan_ptr)
 
 /* (20.7) Get ACPI Power State */
 int
-mc_get_acpi_power_state(struct dummy_rs *rsp) {
+mc_get_acpi_power_state(struct dummy_rs *rsp)
+{
 	uint8_t *data;
 	uint8_t data_len = 2 * sizeof(uint8_t);
 	data = malloc(data_len);
@@ -434,6 +435,63 @@ mc_selftest(struct dummy_rs *rsp)
 	data[1] = 0x04;
 	rsp->data = data;
 	rsp->data_len = data_len;
+	return 0;
+}
+
+/* (20.6) Set ACPI Power State */
+int
+mc_set_acpi_power_state(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	uint8_t acpi_data0;
+	uint8_t acpi_data1;
+	if (req->msg.data_len != 2) {
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	} else if (req->msg.data_len != sizeof(acpi_power_state)) {
+		printf("[ERROR] src/dst size mismatch for ACPI P-State.\n");
+		rsp->ccode = CC_UNSPEC;
+		return (-1);
+	}
+
+	acpi_data0 = req->msg.data[0] & 0x7F;
+	acpi_data1 = req->msg.data[1] & 0x7F;
+	if ((acpi_data0 > 0x0 && acpi_data0 <= 0x0A)
+			|| acpi_data0 == 0x20
+			|| acpi_data0 == 0x21
+			|| acpi_data0 == 0x2A
+			|| acpi_data0 == 0x7F) {
+		/* noop */
+	} else {
+		printf("[ERROR] ACPI data0 invalid: %" PRIx8 "\n",
+				acpi_data0);
+		rsp->ccode = CC_DATA_FIELD_INV;
+		return (-1);
+	}
+	if ((acpi_data1 > 0x0 && acpi_data1 <= 0x3)
+			|| acpi_data1 == 0x2A
+			|| acpi_data1 == 0x7F) {
+		/* noop */
+	} else {
+		printf("[ERROR] ACPI data1 invalid: %" PRIx8 "\n",
+				acpi_data1);
+		rsp->ccode = CC_DATA_FIELD_INV;
+		return (-1);
+	}
+
+	if ((req->msg.data[0] & 0x80) == 0x80) {
+		printf("[INFO] ACPI P-State data0 updated.\n");
+		acpi_power_state[0] = req->msg.data[0] & 0x7F;
+	}
+	if ((req->msg.data[1] & 0x80) == 0x80) {
+		printf("[INFO] ACPI P-State data1 updated.\n");
+		acpi_power_state[1] = req->msg.data[1] & 0x7F;
+	}
+
+	printf("[INFO] ACPI P-State data0: %" PRIx8 "\n",
+			acpi_power_state[0]);
+	printf("[INFO] ACPI P-State data1: %" PRIx8 "\n",
+			acpi_power_state[1]);
+	rsp->ccode = CC_OK;
 	return 0;
 }
 
@@ -710,6 +768,9 @@ netfn_app_main(struct dummy_rq *req, struct dummy_rs *rsp)
 		break;
 	case BMC_GET_SYS_GUID:
 		rc = mc_get_system_guid(rsp);
+		break;
+	case BMC_SET_ACPI_PSTATE:
+		rc = mc_set_acpi_power_state(req, rsp);
 		break;
 	case USER_GET_ACCESS:
 		rc = user_get_access(req, rsp);
