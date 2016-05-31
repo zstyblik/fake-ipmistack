@@ -293,6 +293,11 @@ mc_get_acpi_power_state(struct dummy_rs *rsp)
 {
 	uint8_t *data;
 	uint8_t data_len = 2 * sizeof(uint8_t);
+	if (data_len != sizeof(acpi_power_state)) {
+		printf("[ERROR] src/dst size mismatch for ACPI P-State.\n");
+		rsp->ccode = CC_UNSPEC;
+		return (-1);
+	}
 	data = malloc(data_len);
 	if (data == NULL) {
 		perror("malloc fail");
