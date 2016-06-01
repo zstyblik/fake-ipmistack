@@ -85,6 +85,7 @@ struct ipmi_user {
 };
 
 uint8_t acpi_power_state[2] = {0x2A, 0x2A};
+uint8_t mc_global_enables = 0x8;
 
 int get_channel_by_number(uint8_t chan_num, struct ipmi_channel *ipmi_chan_ptr);
 
@@ -500,6 +501,19 @@ mc_set_acpi_power_state(struct dummy_rq *req, struct dummy_rs *rsp)
 	return 0;
 }
 
+/* (22.1) Set BMC Global Enables */
+int
+mc_set_global_enables(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	if (req->msg.data_len != 1) {
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	}
+	mc_global_enables = req->msg.data[0];
+	rsp->ccode = CC_OK;
+	return 0;
+}
+
 /* (22.27) Get User Access Command */
 int
 user_get_access(struct dummy_rq *req, struct dummy_rs *rsp)
@@ -776,6 +790,9 @@ netfn_app_main(struct dummy_rq *req, struct dummy_rs *rsp)
 		break;
 	case BMC_SET_ACPI_PSTATE:
 		rc = mc_set_acpi_power_state(req, rsp);
+		break;
+	case BMC_SET_GLOBAL_ENABLES:
+		rc = mc_set_global_enables(req, rsp);
 		break;
 	case USER_GET_ACCESS:
 		rc = user_get_access(req, rsp);
