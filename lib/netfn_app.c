@@ -384,6 +384,25 @@ mc_get_device_guid(struct dummy_rs *rsp)
 	return 0;
 }
 
+/* (22.2) Get BMC Global Enables */
+int
+mc_get_global_enables(struct dummy_rs *rsp)
+{
+	uint8_t *data;
+	uint8_t data_len = sizeof(uint8_t);
+	data = malloc(data_len);
+	if (data == NULL) {
+		perror("malloc fail");
+		rsp->ccode = CC_UNSPEC;
+		return (-1);
+	}
+	data[0] = mc_global_enables;
+	rsp->data = data;
+	rsp->data_len = data_len;
+	rsp->ccode = CC_OK;
+	return 0;
+}
+
 /* (22.14) Get System GUID */
 int
 mc_get_system_guid(struct dummy_rs *rsp)
@@ -784,6 +803,9 @@ netfn_app_main(struct dummy_rq *req, struct dummy_rs *rsp)
 		break;
 	case BMC_GET_DEVICE_GUID:
 		rc = mc_get_device_guid(rsp);
+		break;
+	case BMC_GET_GLOBAL_ENABLES:
+		rc = mc_get_global_enables(rsp);
 		break;
 	case BMC_GET_SYS_GUID:
 		rc = mc_get_system_guid(rsp);

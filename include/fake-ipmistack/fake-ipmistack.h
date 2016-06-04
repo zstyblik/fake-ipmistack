@@ -95,6 +95,7 @@ struct dummy_rs {
 # define BMC_GET_SYS_GUID 0x37
 
 # define BMC_SET_GLOBAL_ENABLES 0x60
+# define BMC_GET_GLOBAL_ENABLES 0x61
 
 # define CHASSIS_GET_CAPA 0x00
 # define CHASSIS_GET_STATUS 0x01
