@@ -130,6 +130,62 @@ app_get_channel_access(struct dummy_rq *req, struct dummy_rs *rsp)
 	return 0;
 }
 
+/* (22.13) Get Channel Authentication Capabilities */
+int
+app_get_channel_auth_capabilities(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	uint8_t *data;
+	uint8_t channel_num;
+	uint8_t data_len = 8 * sizeof(uint8_t);
+	uint8_t v15_only;
+	uint8_t	priv_level;
+	if (req->msg.data_len != 2) {
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	}
+
+	v15_only = req->msg.data[0] & 0x80;
+	channel_num = req->msg.data[0] & 0x0F;
+	priv_level = req->msg.data[1] & 0x0F;
+	if ((is_valid_channel(channel_num) != 0)
+		|| (is_valid_priv_limit(priv_level) != 0)) {
+		rsp->ccode = CC_DATA_FIELD_INV;
+		return (-1);
+	}
+
+	data = malloc(data_len);
+	if (data == NULL) {
+		perror("malloc fail");
+		rsp->ccode = CC_UNSPEC;
+		return (-1);
+	}
+
+	if (channel_num == 0x0E) {
+		/* TODO - de-hard-code this */
+		channel_num = 0x0F;
+	}
+
+	data[0] = channel_num;
+	/* Note: Auth values are made up and not tied to anything at the moment.
+	 */
+	data[1] = 0x8F;
+	data[2] = 0x0F;
+	if (v15_only == 0x00) {
+		data[3] = 0x00;
+	} else {
+		data[3] = 0x01;
+	}
+	/* No OEM ID/data */
+	data[4] = 0x00;
+	data[5] = 0x00;
+	data[6] = 0x00;
+	data[7] = 0x00;
+	rsp->data = data;
+	rsp->data_len = data_len;
+	rsp->ccode = CC_OK;
+	return 0;
+}
+
 /* (22.24) Get Channel Info */
 int
 app_get_channel_info(struct dummy_rq *req, struct dummy_rs *rsp)
@@ -781,6 +837,9 @@ netfn_app_main(struct dummy_rq *req, struct dummy_rs *rsp)
 	switch (req->msg.cmd) {
 	case APP_GET_CHANNEL_ACCESS:
 		rc = app_get_channel_access(req, rsp);
+		break;
+	case APP_GET_CHANNEL_AUTH_CAPABILITIES:
+		rc = app_get_channel_auth_capabilities(req, rsp);
 		break;
 	case APP_GET_CHANNEL_INFO:
 		rc = app_get_channel_info(req, rsp);
