@@ -39,6 +39,16 @@ static uint16_t g_udp_pkts_rx = 2345;
 static uint16_t g_udp_proxy_rx = 183;
 static uint16_t g_udp_proxy_drop = 197;
 
+struct ipmi_lan_configuration {
+	uint8_t channel;
+	uint16_t vlan_id;
+} ipmi_lan_configurations[] = {
+	{ 0x01, 0x10 },
+	{ 0xFF, 0xFF },
+};
+
+#define LAN_VLAN_ID 0x14
+
 /* (23.4) Get IP/UDP/RMCP Statistics */
 int
 transport_get_ip_stats(struct dummy_rq *req, struct dummy_rs *rsp)
@@ -96,6 +106,105 @@ transport_get_ip_stats(struct dummy_rq *req, struct dummy_rs *rsp)
 	return 0;
 }
 
+/* (23.2) Get LAN Configuration Parameters */
+int
+transport_get_lan_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	int i;
+	int rc = 0;
+	uint8_t channel_num;
+	uint8_t data_len = sizeof(uint8_t);
+	uint8_t *data;
+	if (req->msg.data_len < 4) {
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	}
+
+	for (i = 0; i < req->msg.data_len; i++) {
+		printf("[INFO] data[%i] = %" PRIx8 "\n", i, req->msg.data[i]);
+	}
+
+	channel_num = req->msg.data[0] & 0x0F;
+	if (is_valid_channel(channel_num) != 0) {
+		rsp->ccode = CC_DATA_FIELD_INV;
+		return (-1);
+	}
+
+	switch (req->msg.data[1]) {
+	case LAN_VLAN_ID:
+		data_len += sizeof(uint8_t) * 2;
+		data = malloc(data_len);
+		if (data == NULL) {
+			perror("malloc fail");
+			rsp->ccode = CC_UNSPEC;
+			return (-1);
+		}
+		data[0] = 0x11;
+		data[1] = ipmi_lan_configurations[0].vlan_id >> 0;
+		data[2] = ipmi_lan_configurations[0].vlan_id >> 8;
+		printf("Data sent back:\n");
+		printf("data[0]: %" PRIX8 "\n", data[0]);
+		printf("data[1]: %" PRIX8 "\n", data[1]);
+		printf("data[2]: %" PRIX8 "\n", data[2]);
+
+		rsp->data = data;
+		rsp->data_len = data_len;
+		rsp->ccode = CC_OK;
+		break;
+	default:
+		rsp->ccode = 0x80;
+		rc = (-1);
+		break;
+	}
+	return rc;
+}
+
+/* (23.1) Set LAN Configuration Parameters */
+int
+transport_set_lan_config_params(struct dummy_rq *req, struct dummy_rs *rsp)
+{
+	/* TODO - 0x81 - set in progress; 0x82 - write to R/O; 0x83 - read W/O */
+	int i;
+	int rc = 0;
+	uint8_t channel_num;
+	if (req->msg.data_len < 3) {
+		rsp->ccode = CC_DATA_LEN;
+		return (-1);
+	}
+
+	for (i = 0; i < req->msg.data_len; i++) {
+		printf("[INFO] data[%i] = %" PRIx8 "\n", i, req->msg.data[i]);
+	}
+
+	channel_num = req->msg.data[0] & 0x0F;
+	if (is_valid_channel(channel_num) != 0) {
+		rsp->ccode = CC_DATA_FIELD_INV;
+		return (-1);
+	}
+
+	switch (req->msg.data[1]) {
+	case LAN_VLAN_ID:
+		if (req->msg.data_len != 4) {
+			rsp->ccode = CC_DATA_LEN;
+			return (-1);
+		}
+		printf("VLAN ID Before: %" PRIX16 "\n",
+				ipmi_lan_configurations[0].vlan_id);
+		ipmi_lan_configurations[0].vlan_id = req->msg.data[3] << 8;
+		ipmi_lan_configurations[0].vlan_id = req->msg.data[2];
+		printf("VLAN ID After: %" PRIX16 "\n",
+				ipmi_lan_configurations[0].vlan_id);
+		rsp->ccode = CC_OK;
+		rc = 0;
+		break;
+	default:
+		rsp->ccode = 0x80;
+		rc = (-1);
+		break;
+	}
+	return rc;
+}
+
 /* (23.3) Suspend BMC ARPs Command */
 int
 transport_suspend_bmc_arp(struct dummy_rq *req, struct dummy_rs *rsp)
@@ -141,13 +250,11 @@ netfn_transport_main(struct dummy_rq *req, struct dummy_rs *rsp)
 	case TRANSPORT_GET_IP_STATS:
 		rc = transport_get_ip_stats(req, rsp);
 		break;
-	case TRANSPORT_GET_LAN_CFG:
-		rsp->ccode = CC_CMD_INV;
-		rc = (-1);
+	case TRANSPORT_GET_LAN_CONFIG_PARAMS:
+		rc = transport_get_lan_config_params(req, rsp);
 		break;
-	case TRANSPORT_SET_LAN_CFG:
-		rsp->ccode = CC_CMD_INV;
-		rc = (-1);
+	case TRANSPORT_SET_LAN_CONFIG_PARAMS:
+		rc = transport_set_lan_config_params(req, rsp);
 		break;
 	case TRANSPORT_SUSPEND_BMC_ARP:
 		rc = transport_suspend_bmc_arp(req, rsp);
